@@ -58,6 +58,10 @@ const courseEnrollmentSchema = new mongoose.Schema({
   paidAt: {
     type: Date
   },
+  courseStartDate: {
+    type: Date,
+    required: false
+  },
   appliedAt: {
     type: Date,
     default: Date.now

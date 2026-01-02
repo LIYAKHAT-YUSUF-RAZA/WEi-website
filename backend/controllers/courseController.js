@@ -6,7 +6,19 @@ const Application = require('../models/Application');
 // @access  Public
 const getCourses = async (req, res) => {
   try {
-    const courses = await Course.find({ status: 'active' }).populate('instructor').sort({ createdAt: -1 });
+    // Use lean() for faster queries (returns plain JS objects)
+    // Select only necessary fields to reduce data transfer
+    const courses = await Course.find({ 
+      $or: [
+        { status: 'active' },
+        { status: { $exists: false } }
+      ]
+    })
+    .select('title description price originalPrice discountPercentage category level duration instructor instructorDetails thumbnail image createdAt updatedAt')
+    .populate('instructor', 'name bio expertise')
+    .sort({ createdAt: -1 })
+    .lean();
+    
     res.json(courses);
   } catch (error) {
     res.status(500).json({ message: error.message });

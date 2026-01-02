@@ -11,38 +11,45 @@ const InternshipsPage = () => {
   const [applicationStatuses, setApplicationStatuses] = useState({});
 
   useEffect(() => {
-    fetchInternships();
-    fetchApplicationStatuses();
+    const fetchData = async () => {
+      try {
+        const promises = [axios.get('/api/internships')];
+        
+        // Only fetch application statuses if user is logged in
+        try {
+          promises.push(axios.get('/api/applications/my-applications'));
+        } catch (e) {
+          // User not logged in, skip
+        }
+        
+        const results = await Promise.all(promises);
+        const [internshipsRes, applicationsRes] = results;
+        
+        // Sort internships
+        const sortedInternships = internshipsRes.data.sort((a, b) => 
+          new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setInternships(sortedInternships);
+        
+        // Process applications if available
+        if (applicationsRes) {
+          const statusMap = {};
+          applicationsRes.data
+            .filter(app => app.type === 'internship')
+            .forEach(app => {
+              statusMap[app.referenceId] = app.status;
+            });
+          setApplicationStatuses(statusMap);
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
-
-  const fetchInternships = async () => {
-    try {
-      const response = await axios.get('/api/internships');
-      // Sort by newest first
-      const sortedInternships = response.data.sort((a, b) => 
-        new Date(b.createdAt) - new Date(a.createdAt)
-      );
-      setInternships(sortedInternships);
-    } catch (error) {
-      console.error('Error fetching internships:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchApplicationStatuses = async () => {
-    try {
-      const response = await axios.get('/api/applications/my-applications');
-      const applications = response.data.filter(app => app.type === 'internship');
-      const statusMap = {};
-      applications.forEach(app => {
-        statusMap[app.referenceId] = app.status;
-      });
-      setApplicationStatuses(statusMap);
-    } catch (error) {
-      console.error('Error fetching application statuses:', error);
-    }
-  };
 
   const filteredInternships = filter === 'all' 
     ? internships 
@@ -54,8 +61,21 @@ const InternshipsPage = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        <div className="flex items-center justify-center h-96">
-          <div className="text-xl">Loading internships...</div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="h-10 bg-gray-200 rounded w-80 mb-8 animate-pulse"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map(i => (
+              <div key={i} className="bg-white rounded-lg shadow-md overflow-hidden animate-pulse">
+                <div className="h-48 bg-gray-200"></div>
+                <div className="p-6 space-y-3">
+                  <div className="h-6 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );

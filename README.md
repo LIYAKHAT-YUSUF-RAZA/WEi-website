@@ -104,7 +104,7 @@ MONGODB_URI=mongodb://localhost:27017/weintegrity
 JWT_SECRET=your_secure_jwt_secret_here
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
-CLIENT_URL=http://localhost:3000
+CLIENT_URL=http://localhost:5173
 ```
 
 ### 4. Frontend Setup
@@ -142,7 +142,7 @@ Backend will run on http://localhost:5000
 cd frontend
 npm run dev
 ```
-Frontend will run on http://localhost:3000
+Frontend will run on http://localhost:5173
 
 ## Default User Accounts
 

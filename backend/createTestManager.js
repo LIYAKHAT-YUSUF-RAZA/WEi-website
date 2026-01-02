@@ -46,7 +46,7 @@ const createTestManager = async () => {
     console.log('Email: admin@weintegrity.com');
     console.log('Password: admin123');
     console.log('');
-    console.log('Go to: http://localhost:3001/login');
+    console.log('Go to: http://localhost:5173/login');
 
     mongoose.disconnect();
   } catch (error) {

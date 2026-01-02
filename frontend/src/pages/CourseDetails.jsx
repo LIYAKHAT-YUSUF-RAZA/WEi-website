@@ -5,10 +5,14 @@ import { Menu, X, ChevronDown, ChevronUp, Heart, Star, Clock, Users, Award, Book
 import Navbar from '../components/public/Navbar.jsx';
 import Footer from '../components/public/Footer.jsx';
 import { featuredCourses } from '../data/featuredData';
+import { useAuth } from '../context/AuthContext.jsx';
+import { useCart } from '../context/CartContext.jsx';
 
 const CourseDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { addToCart, isInCart } = useCart();
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
@@ -49,25 +53,47 @@ const CourseDetails = () => {
   }, [id]);
 
   const handleEnroll = async () => {
+    // Check if user is logged in
+    if (!user || user.role !== 'candidate') {
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
+      navigate('/login', { state: { from: window.location.pathname } });
+      return;
+    }
+
+    // Check if already enrolled
+    if (enrollmentStatus === 'accepted' || enrollmentStatus === 'pending') {
+      alert('You are already enrolled in this course!');
+      return;
+    }
+
     setEnrolling(true);
     setMessage({ type: '', text: '' });
 
     try {
-      console.log('Enrolling in course:', id);
-      const response = await axios.post('/api/enrollments', {
-        courseId: id,
-        message: ''
+      // Navigate directly to payment page with course data
+      const courseItem = {
+        _id: course._id,
+        type: 'course',
+        course: course
+      };
+
+      const subtotal = course.price || 0;
+      const originalTotal = course.originalPrice || 0;
+      const savings = originalTotal - subtotal;
+
+      navigate('/payment', {
+        state: {
+          items: [courseItem],
+          subtotal: subtotal,
+          originalTotal: originalTotal,
+          savings: savings
+        }
       });
-      console.log('Enrollment response:', response.data);
-      
-      setMessage({ type: 'success', text: 'Successfully enrolled in the course!' });
-      setEnrollmentStatus('pending'); // Update status to pending
-      setTimeout(() => navigate('/my-applications'), 2000);
     } catch (error) {
-      console.error('Enrollment error:', error.response?.data || error.message);
+      console.error('Enrollment error:', error);
       setMessage({ 
         type: 'error', 
-        text: error.response?.data?.message || 'Enrollment failed. Please try again.' 
+        text: 'Failed to proceed to payment. Please try again.' 
       });
     } finally {
       setEnrolling(false);
@@ -75,21 +101,27 @@ const CourseDetails = () => {
   };
 
   const getEnrollButton = () => {
+    // Check if already enrolled
     if (enrollmentStatus === 'accepted') {
       return (
         <button
           className="px-6 py-3 bg-green-500 text-white rounded-lg font-semibold cursor-default flex items-center gap-2"
+          disabled
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
           </svg>
-          Enrolled
+          Already Enrolled
         </button>
       );
-    } else if (enrollmentStatus === 'pending') {
+    }
+    
+    // Check if pending approval
+    if (enrollmentStatus === 'pending') {
       return (
         <button
           className="px-6 py-3 bg-yellow-500 text-white rounded-lg font-semibold cursor-default flex items-center gap-2"
+          disabled
         >
           <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -97,17 +129,33 @@ const CourseDetails = () => {
           Pending
         </button>
       );
-    } else {
+    }
+    
+    // Check if course is in cart
+    if (isInCart(id, 'course')) {
       return (
-        <button 
-          onClick={handleEnroll}
-          disabled={enrolling}
-          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50"
+        <button
+          onClick={() => navigate('/cart')}
+          className="px-6 py-3 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-all duration-300 flex items-center gap-2"
         >
-          {enrolling ? 'Enrolling...' : 'Enroll Now'}
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M3 1a1 1 0 000 2h1.22l.305 1.222a.997.997 0 00.01.042l1.358 5.43-.893.892C3.74 11.846 4.632 14 6.414 14H15a1 1 0 000-2H6.414l1-1H14a1 1 0 00.894-.553l3-6A1 1 0 0017 3H6.28l-.31-1.243A1 1 0 005 1H3zM16 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM6.5 18a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" />
+          </svg>
+          Item in Cart
         </button>
       );
     }
+    
+    // Default: Show Enroll Now button
+    return (
+      <button 
+        onClick={handleEnroll}
+        disabled={enrolling}
+        className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
+      >
+        {enrolling ? 'Processing...' : 'Enroll Now'}
+      </button>
+    );
   };
 
   const toggleModule = (index) => {

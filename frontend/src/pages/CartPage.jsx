@@ -9,8 +9,6 @@ const CartPage = () => {
   const { cart, loading, removeFromCart, clearCart, getCartCount } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
-  
-  const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -56,40 +54,22 @@ const CartPage = () => {
     return calculateOriginalTotal() - calculateSubtotal();
   };
   
-  // Handle checkout - submit enrollment requests without payment
-  const handleCheckout = async () => {
+  // Handle checkout - navigate to payment page
+  const handleCheckout = () => {
     if (getCartCount() === 0) {
       alert('Your cart is empty');
       return;
     }
 
-    setProcessingPayment(true);
-
-    try {
-      // Process all cart items as enrollment requests (no payment required)
-      const enrollmentPromises = cart.items.map(item => {
-        if (item.course) {
-          return axios.post('/api/enrollments', {
-            courseId: item.course._id,
-            message: ''
-          });
-        }
-        return null;
-      }).filter(Boolean);
-
-      await Promise.all(enrollmentPromises);
-
-      // Clear cart after successful enrollment requests
-      await clearCart();
-
-      setProcessingPayment(false);
-
-      alert('✅ Enrollment requests submitted successfully! You will receive an email when the manager reviews your requests.');
-      navigate('/candidate/dashboard');
-    } catch (error) {
-      setProcessingPayment(false);
-      alert(error.response?.data?.message || 'Error submitting enrollment requests. Please try again.');
-    }
+    // Navigate to payment page with cart data
+    navigate('/payment', { 
+      state: { 
+        items: cart.items,
+        subtotal: calculateSubtotal(),
+        originalTotal: calculateOriginalTotal(),
+        savings: calculateSavings()
+      } 
+    });
   };
 
   if (loading) {
@@ -271,20 +251,10 @@ const CartPage = () => {
 
                 <button
                   onClick={handleCheckout}
-                  disabled={processingPayment}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-lg font-bold text-lg hover:shadow-xl transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-lg font-bold text-lg hover:shadow-xl transition flex items-center justify-center gap-2"
                 >
-                  {processingPayment ? (
-                    <>
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                      Submitting Requests...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="w-6 h-6" />
-                      Submit Enrollment Requests
-                    </>
-                  )}
+                  <CreditCard className="w-6 h-6" />
+                  Proceed to Payment
                 </button>
 
                 <p className="text-xs text-gray-500 text-center mt-4">

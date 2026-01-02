@@ -125,6 +125,8 @@ const ManageCourses = () => {
       const updateData = {
         ...editingCourse,
         category: editingCourse.category === 'Other' ? customCategory.trim() : editingCourse.category,
+        price: discountPrice,
+        originalPrice: originalPrice,
         discountPercentage: discountPercentage,
         prerequisites: editingCourse.prerequisites 
           ? editingCourse.prerequisites.split('\n').filter(p => p.trim()) 

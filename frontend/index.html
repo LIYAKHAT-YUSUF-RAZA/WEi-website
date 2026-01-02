@@ -5,6 +5,111 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>WEintegrity - Your Technology Partner</title>
+    <script>
+      // Suppress Vite HMR WebSocket connection errors - MUST RUN FIRST
+      (function() {
+        'use strict';
+        
+        // Helper to check if message is a WebSocket error
+        function isWebSocketError(str) {
+          if (!str) return false;
+          const msg = String(str).toLowerCase();
+          const hasWebSocket = msg.includes('websocket') || msg.includes('ws://');
+          const hasLocalhost = msg.includes('localhost:5173') || msg.includes('failed') || msg.includes('connection');
+          return hasWebSocket && hasLocalhost;
+        }
+        
+        // Store originals
+        const originalConsole = {
+          error: console.error.bind(console),
+          warn: console.warn.bind(console),
+          log: console.log.bind(console)
+        };
+        
+        // Create a comprehensive message string from args
+        function getFullMessage(args) {
+          return args.map(arg => {
+            if (arg === null) return 'null';
+            if (arg === undefined) return 'undefined';
+            if (typeof arg === 'object') {
+              try {
+                return arg.toString ? arg.toString() : JSON.stringify(arg);
+              } catch (e) {
+                return '[Object]';
+              }
+            }
+            return String(arg);
+          }).join(' ');
+        }
+        
+        // Override console.error with comprehensive checking
+        console.error = function(...args) {
+          const fullMessage = getFullMessage(args);
+          if (isWebSocketError(fullMessage)) {
+            return; // Suppress
+          }
+          // Also check individual arguments
+          for (const arg of args) {
+            if (isWebSocketError(getFullMessage([arg]))) {
+              return; // Suppress
+            }
+          }
+          originalConsole.error.apply(console, args);
+        };
+        
+        // Override console.warn
+        console.warn = function(...args) {
+          const fullMessage = getFullMessage(args);
+          if (isWebSocketError(fullMessage)) {
+            return; // Suppress
+          }
+          originalConsole.warn.apply(console, args);
+        };
+        
+        // Handle window.onerror - catch at the earliest point
+        window.addEventListener('error', function(event) {
+          const msg = (event.message || '').toLowerCase();
+          const source = (event.filename || event.source || '').toLowerCase();
+          
+          if (msg.includes('websocket') && (msg.includes('localhost:5173') || msg.includes('failed'))) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+            return false;
+          }
+          
+          if (source.includes('client:') && msg.includes('websocket')) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+            return false;
+          }
+        }, true); // Capture phase - runs first
+        
+        // Handle unhandled rejections
+        window.addEventListener('unhandledrejection', function(event) {
+          const reason = event.reason;
+          if (reason && isWebSocketError(String(reason))) {
+            event.preventDefault();
+            return false;
+          }
+        });
+        
+        // Legacy window.onerror handler
+        window.onerror = function(message, source, lineno, colno, error) {
+          const msg = String(message || '').toLowerCase();
+          const src = String(source || '').toLowerCase();
+          
+          if (msg.includes('websocket') && (msg.includes('localhost:5173') || msg.includes('failed'))) {
+            return true; // Suppress
+          }
+          
+          if (src.includes('client:') && msg.includes('websocket')) {
+            return true; // Suppress
+          }
+          
+          return false;
+        };
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

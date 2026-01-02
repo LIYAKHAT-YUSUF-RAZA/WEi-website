@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Search, X, Menu, Heart, ChevronLeft, ChevronRight, Sun, Moon, Briefcase, Users, Award, TrendingUp, LogOut, User, ShoppingCart, Trash2, BookOpen } from 'lucide-react';
+import { Search, X, Menu, ChevronLeft, ChevronRight, Briefcase, Users, Award, TrendingUp, LogOut, User, ShoppingCart, Trash2, BookOpen, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
-import { featuredCourses, featuredInternships, topPartners } from '../data/featuredData.js';
+import { featuredInternships, topPartners } from '../data/featuredData.js';
 
 const CandidateDashboard = () => {
   const [companyInfo, setCompanyInfo] = useState(null);
@@ -13,15 +13,6 @@ const CandidateDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [enrollments, setEnrollments] = useState({});
   const [applicationStatuses, setApplicationStatuses] = useState({});
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [paymentMethod, setPaymentMethod] = useState('card');
-  const [processingPayment, setProcessingPayment] = useState(false);
-  const [upiId, setUpiId] = useState('');
-  const [showUpiQR, setShowUpiQR] = useState(false);
-  const [upiQRData, setUpiQRData] = useState('');
-  const [paymentScreenshot, setPaymentScreenshot] = useState(null);
-  const [screenshotPreview, setScreenshotPreview] = useState('');
   const { user, logout } = useAuth();
   const { cart, addToCart, removeFromCart, isInCart, getCartCount } = useCart();
   const navigate = useNavigate();
@@ -33,19 +24,22 @@ const CandidateDashboard = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
-  const [darkMode, setDarkMode] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState({ courses: [], internships: [] });
-  const [visibleCards, setVisibleCards] = useState(new Set());
   const [showAllCourses, setShowAllCourses] = useState(false);
-  const courseRefs = useRef([]);
   const coursesScrollRef = useRef(null);
+  const searchTimeoutRef = useRef(null);
+  
+  // Dark mode disabled for better performance
+  const darkMode = false;
 
   const heroSlides = [
     {
       image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=800&h=600&fit=crop',
-      title: 'Welcome Back, ' + (user?.name || 'Student'),
-      description: 'Continue your journey towards achieving your career goals with our expert-led courses and internships.'
+      title: user ? 'Welcome Back, ' + (user?.name || 'Student') : 'Transform Your Future',
+      description: user 
+        ? 'Continue your journey towards achieving your career goals with our expert-led courses and internships.'
+        : 'Join thousands of students in achieving their career goals with our expert-led courses and internships.'
     },
     {
       image: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&h=600&fit=crop',
@@ -94,36 +88,73 @@ const CandidateDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [companyRes, coursesRes, internshipsRes] = await Promise.all([
-          axios.get('/api/company'),
-          axios.get('/api/courses'),
-          axios.get('/api/internships')
-        ]);
+        // Add cache-busting to API calls
+        const timestamp = Date.now();
+        const promises = [
+          axios.get(`/api/company?t=${timestamp}`),
+          axios.get(`/api/courses?t=${timestamp}`),
+          axios.get(`/api/internships?t=${timestamp}`)
+        ];
+        
+        // Add enrollment/application status if user is logged in
+        if (user && user.role === 'candidate') {
+          promises.push(
+            axios.get(`/api/enrollments/my-enrollments?t=${timestamp}`),
+            axios.get(`/api/applications/my-applications?t=${timestamp}`)
+          );
+        }
+        
+        const results = await Promise.all(promises);
+        const [companyRes, coursesRes, internshipsRes, enrollmentsRes, applicationsRes] = results;
         
         setCompanyInfo(companyRes.data);
         
-        // Combine database courses with featured courses from GitHub demo
+        // Use only database courses
         const dbCourses = coursesRes.data || [];
-        
-        // Sort database courses by newest first
+        console.log('Candidate Dashboard - Fetched courses:', dbCourses.length, dbCourses);
         const sortedDbCourses = dbCourses.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
+          new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
         );
-        const allCourses = [...sortedDbCourses, ...featuredCourses];
-        setCourses(allCourses);
+        setCourses(sortedDbCourses);
         
-        // Combine database internships with featured internships from GitHub demo
+        // Use only database internships
         const dbInternships = internshipsRes.data || [];
-        // Sort database internships by newest first
         const sortedDbInternships = dbInternships.sort((a, b) => 
-          new Date(b.createdAt) - new Date(a.createdAt)
+          new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
         );
-        const allInternships = [...sortedDbInternships, ...featuredInternships];
-        setInternships(allInternships);
+        setInternships(sortedDbInternships);
+        
+        // Process enrollment statuses if available
+        if (enrollmentsRes) {
+          const enrollmentMap = {};
+          enrollmentsRes.data.forEach(enrollment => {
+            const courseId = enrollment.course?._id || enrollment.course;
+            enrollmentMap[courseId] = {
+              status: enrollment.status,
+              enrollmentId: enrollment._id,
+              appliedAt: enrollment.appliedAt
+            };
+          });
+          setEnrollments(enrollmentMap);
+        }
+        
+        // Process application statuses if available
+        if (applicationsRes) {
+          const statusMap = {};
+          applicationsRes.data
+            .filter(app => app.type === 'internship')
+            .forEach(app => {
+              statusMap[app.referenceId] = {
+                status: app.status,
+                applicationId: app._id,
+                appliedAt: app.appliedAt
+              };
+            });
+          setApplicationStatuses(statusMap);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
-        // If API fails, use featured data as fallback
-        setCourses(featuredCourses);
+        setCourses([]);
         setInternships(featuredInternships);
       } finally {
         setLoading(false);
@@ -131,9 +162,7 @@ const CandidateDashboard = () => {
     };
 
     fetchData();
-    fetchEnrollmentStatuses();
-    fetchApplicationStatuses();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -149,317 +178,118 @@ const CandidateDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            const index = entry.target.dataset.index;
-            setVisibleCards((prev) => new Set([...prev, index]));
-          }
-        });
-      },
-      { threshold: 0.2, rootMargin: '0px' }
-    );
+  const nextSlide = useCallback(() => setCurrentSlide((prev) => (prev + 1) % heroSlides.length), [heroSlides.length]);
+  const prevSlide = useCallback(() => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length), [heroSlides.length]);
 
-    courseRefs.current.forEach((ref) => {
-      if (ref) observer.observe(ref);
-    });
-
-    return () => observer.disconnect();
-  }, [courses]);
-
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + heroSlides.length) % heroSlides.length);
-
-  // Scroll functions for courses
-  const scrollCourses = (direction) => {
+  // Memoized scroll function
+  const scrollCourses = useCallback((direction) => {
     if (coursesScrollRef.current) {
-      const scrollAmount = 400; // Scroll by ~1.5 cards
+      const scrollAmount = 400;
       coursesScrollRef.current.scrollBy({
         left: direction === 'left' ? -scrollAmount : scrollAmount,
         behavior: 'smooth'
       });
     }
-  };
+  }, []);
 
-  // Search functionality
-  const handleSearch = (query) => {
+  // Debounced search functionality for better performance
+  const handleSearch = useCallback((query) => {
     setSearchQuery(query);
     
-    if (query.trim().length > 0) {
-      const lowerQuery = query.toLowerCase();
-      
-      // Search in courses
-      const filteredCourses = courses.filter(course => 
-        course.title.toLowerCase().includes(lowerQuery) ||
-        course.description.toLowerCase().includes(lowerQuery) ||
-        (course.category && course.category.toLowerCase().includes(lowerQuery)) ||
-        (course.level && course.level.toLowerCase().includes(lowerQuery))
-      );
-      
-      // Search in internships
-      const filteredInternships = internships.filter(internship => 
-        internship.title.toLowerCase().includes(lowerQuery) ||
-        internship.description.toLowerCase().includes(lowerQuery) ||
-        (internship.department && internship.department.toLowerCase().includes(lowerQuery)) ||
-        (internship.location && internship.location.toLowerCase().includes(lowerQuery)) ||
-        (internship.type && internship.type.toLowerCase().includes(lowerQuery))
-      );
-      
-      setSearchResults({ courses: filteredCourses, internships: filteredInternships });
-      setShowSearchResults(true);
-    } else {
-      setShowSearchResults(false);
-      setSearchResults({ courses: [], internships: [] });
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  };
+    
+    // Debounce search by 300ms
+    searchTimeoutRef.current = setTimeout(() => {
+      if (query.trim().length > 0) {
+        const lowerQuery = query.toLowerCase();
+        
+        // Optimized search - only search in title and category
+        const filteredCourses = courses.filter(course => 
+          course.title.toLowerCase().includes(lowerQuery) ||
+          (course.category && course.category.toLowerCase().includes(lowerQuery))
+        );
+        
+        const filteredInternships = internships.filter(internship => 
+          internship.title.toLowerCase().includes(lowerQuery) ||
+          (internship.department && internship.department.toLowerCase().includes(lowerQuery))
+        );
+        
+        setSearchResults({ courses: filteredCourses, internships: filteredInternships });
+        setShowSearchResults(true);
+      } else {
+        setShowSearchResults(false);
+        setSearchResults({ courses: [], internships: [] });
+      }
+    }, 300);
+  }, [courses, internships]);
 
-  const clearSearch = () => {
+  const clearSearch = useCallback(() => {
     setSearchQuery('');
     setShowSearchResults(false);
     setSearchResults({ courses: [], internships: [] });
-  };
-
-  // Fetch enrollment statuses for all courses
-  const fetchEnrollmentStatuses = async () => {
-    try {
-      const response = await axios.get('/api/enrollments/my-enrollments');
-      const enrollmentMap = {};
-      response.data.forEach(enrollment => {
-        // Handle both populated and non-populated course field
-        const courseId = enrollment.course?._id || enrollment.course;
-        enrollmentMap[courseId] = {
-          status: enrollment.status,
-          enrollmentId: enrollment._id,
-          appliedAt: enrollment.appliedAt
-        };
-      });
-      console.log('Enrollment map:', enrollmentMap);
-      setEnrollments(enrollmentMap);
-    } catch (error) {
-      console.error('Error fetching enrollments:', error);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-  };
+  }, []);
 
-  // Fetch application statuses for all internships
-  const fetchApplicationStatuses = async () => {
-    try {
-      const response = await axios.get('/api/applications/my-applications');
-      const applications = response.data.filter(app => app.type === 'internship');
-      const statusMap = {};
-      applications.forEach(app => {
-        statusMap[app.referenceId] = {
-          status: app.status,
-          applicationId: app._id,
-          appliedAt: app.appliedAt
-        };
-      });
-      console.log('Application status map:', statusMap);
-      setApplicationStatuses(statusMap);
-    } catch (error) {
-      console.error('Error fetching application statuses:', error);
-    }
-  };
-
-  // Handle course enrollment - no payment required initially
-  const handleEnroll = async (courseId) => {
+  // Memoized enrollment handler
+  const handleEnroll = useCallback(async (courseId) => {
     const course = courses.find(c => c._id === courseId);
     if (!course) {
       alert('Course not found');
       return;
     }
     
-    // Optimistic update - immediately update UI
-    setEnrollments(prev => ({
-      ...prev,
-      [courseId]: { status: 'pending', enrollmentId: 'temp-' + courseId, appliedAt: new Date() }
-    }));
+    // Navigate directly to payment page with course data
+    const courseItem = {
+      _id: courseId,
+      type: 'course',
+      course: course
+    };
 
-    try {
-      const response = await axios.post('/api/enrollments', { 
-        courseId: courseId,
-        message: ''
-      });
-      
-      // Update with actual data from server
-      setEnrollments(prev => ({
-        ...prev,
-        [courseId]: { 
-          status: response.data.enrollment.status,
-          enrollmentId: response.data.enrollment._id,
-          appliedAt: response.data.enrollment.appliedAt
-        }
-      }));
-      
-      alert('✅ Enrollment request submitted! You will receive an email when the manager reviews your request.');
-    } catch (error) {
-      // Rollback optimistic update on error
-      setEnrollments(prev => {
-        const updated = { ...prev };
-        delete updated[courseId];
-        return updated;
-      });
-      alert(error.response?.data?.message || 'Error submitting enrollment request');
-    }
-  };
+    const subtotal = course.price || 0;
+    const originalTotal = course.originalPrice || 0;
+    const savings = originalTotal - subtotal;
 
-  // Handle payment for approved enrollment
-  const handlePayment = async (courseId) => {
-    const course = courses.find(c => c._id === courseId);
-    if (!course) {
-      alert('Course not found');
-      return;
-    }
-    
-    setSelectedCourse(course);
-    setShowPaymentModal(true);
-  };
-
-  // Generate UPI deep link for payment
-  const generateUpiDeepLink = () => {
-    if (!selectedCourse) return '';
-    
-    const merchantVPA = '8074637475-lyr@ybl';
-    const merchantName = 'WEintegrity Technologies';
-    const amount = selectedCourse.price;
-    const transactionNote = `Course: ${selectedCourse.title}`;
-    const transactionId = 'TXN' + Date.now();
-    
-    // Proper UPI URL format for QR codes (without encoding for QR)
-    const upiUrl = `upi://pay?pa=${merchantVPA}&pn=${merchantName}&am=${amount}&cu=INR&tn=${transactionNote}&tr=${transactionId}`;
-    
-    return upiUrl;
-  };
-
-  // Check if device is mobile
-  const isMobileDevice = () => {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  };
-
-  // Handle UPI app opening - Only show QR code (works for both desktop and mobile)
-  const openUpiApp = (e) => {
-    // Prevent any default behavior
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
-    const upiLink = generateUpiDeepLink();
-    
-    // Only show QR code - no deep linking to avoid browser errors
-    setUpiQRData(upiLink);
-    setShowUpiQR(true);
-  };
-
-  // Complete UPI payment after user confirmation
-  const completeUpiPayment = async () => {
-    if (!selectedCourse) return;
-
-    // Make screenshot upload mandatory
-    if (!paymentScreenshot) {
-      alert('⚠️ Please upload payment screenshot to proceed with payment.');
-      return;
-    }
-
-    setProcessingPayment(true);
-    const transactionId = 'TXN' + Date.now() + Math.random().toString(36).substr(2, 9).toUpperCase();
-    const enrollmentId = enrollments[selectedCourse._id]?.enrollmentId;
-
-    if (!enrollmentId) {
-      alert('Error: Enrollment ID not found');
-      setProcessingPayment(false);
-      return;
-    }
-
-    try {
-      const response = await axios.post(`/api/enrollments/${enrollmentId}/payment`, { 
-        paymentMethod: 'upi',
-        transactionId: transactionId,
-        paymentScreenshot: screenshotPreview
-      });
-      
-      // Update enrollment status to accepted
-      setEnrollments(prev => ({
-        ...prev,
-        [selectedCourse._id]: { 
-          ...prev[selectedCourse._id],
-          status: 'accepted',
-          paymentStatus: 'completed'
-        }
-      }));
-      
-      setShowPaymentModal(false);
-      setSelectedCourse(null);
-      setProcessingPayment(false);
-      setUpiId('');
-      setShowUpiQR(false);
-      setPaymentScreenshot(null);
-      setScreenshotPreview('');
-      
-      alert('✅ Payment successful! ' + response.data.message);
-    } catch (error) {
-      setEnrollments(prev => {
-        const updated = { ...prev };
-        delete updated[selectedCourse._id];
-        return updated;
-      });
-      
-      setProcessingPayment(false);
-      alert(error.response?.data?.message || 'Payment failed. Please try again.');
-    }
-  };
-
-  // Handle screenshot upload
-  const handleScreenshotUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size should be less than 5MB');
-        return;
+    navigate('/payment', {
+      state: {
+        items: [courseItem],
+        subtotal: subtotal,
+        originalTotal: originalTotal,
+        savings: savings
       }
-      
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setScreenshotPreview(reader.result);
-        setPaymentScreenshot(file);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
+    });
+  }, [courses, navigate]);
 
-  // Unenroll functionality removed - candidates cannot cancel their enrollment requests
-
-  // Get enrollment button state
-  const getEnrollmentButton = (courseId) => {
+  // Memoized enrollment button state
+  const getEnrollmentButton = useCallback((courseId) => {
     const enrollment = enrollments[courseId];
-    console.log(`Course ${courseId} enrollment:`, enrollment);
     
     if (!enrollment) {
-      console.log('No enrollment found, showing Enroll Now');
       return { text: 'Enroll Now', color: 'blue', action: () => handleEnroll(courseId) };
     }
     if (enrollment.status === 'pending') {
-      console.log('Enrollment status is pending');
       return { text: 'Pending...', color: 'orange', action: null, disabled: true };
     }
     if (enrollment.status === 'payment_pending') {
-      return { text: 'Pay Now 💳', color: 'blue', action: () => handlePayment(courseId) };
+      return { text: 'Pay Now 💳', color: 'blue', action: () => handleEnroll(courseId) };
     }
     if (enrollment.status === 'accepted') {
-      console.log('Enrollment status is accepted');
       return { text: 'Enrolled ✓', color: 'green', action: null, disabled: true };
     }
     if (enrollment.status === 'rejected') {
       return { text: 'Apply Again', color: 'blue', action: () => handleEnroll(courseId) };
     }
     return { text: 'Enroll Now', color: 'blue', action: () => handleEnroll(courseId) };
-  };
+  }, [enrollments, handleEnroll]);
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logout();
     navigate('/login');
-  };
+  }, [logout, navigate]);
 
   if (loading) {
     return (
@@ -470,9 +300,9 @@ const CandidateDashboard = () => {
   }
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-slate-50 to-slate-100'}`}>
+    <div className="min-h-screen transition-colors duration-300 bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Navbar */}
-      <nav className={`fixed top-0 w-full shadow-lg z-50 transition-all duration-300 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+      <nav className="fixed top-0 w-full shadow-lg z-50 transition-all duration-300 bg-white">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex justify-between items-center h-16 sm:h-20">
             <div className="flex items-center space-x-2 sm:space-x-3 flex-shrink-0">
@@ -487,11 +317,11 @@ const CandidateDashboard = () => {
             <div className="hidden lg:flex items-center space-x-1 flex-1 justify-end">
               {!searchOpen ? (
                 <>
-                  <a href="#home" className={`px-3 xl:px-4 py-2 rounded-lg transition-all duration-300 font-medium ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-blue-50 text-gray-700 hover:text-blue-600'}`}>Home</a>
-                  <a href="#courses" className={`px-3 xl:px-4 py-2 rounded-lg transition-all duration-300 font-medium ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-blue-50 text-gray-700 hover:text-blue-600'}`}>Courses</a>
-                  <a href="#internships" className={`px-3 xl:px-4 py-2 rounded-lg transition-all duration-300 font-medium ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-blue-50 text-gray-700 hover:text-blue-600'}`}>Internships</a>
-                  <a href="#contact" className={`px-3 xl:px-4 py-2 rounded-lg transition-all duration-300 font-medium ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-blue-50 text-gray-700 hover:text-blue-600'}`}>Contact</a>
-                  <button onClick={() => setSearchOpen(true)} className={`p-2 rounded-lg transition-all duration-300 ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-blue-50 text-gray-700'}`}>
+                  <a href="#home" className="px-3 xl:px-4 py-2 rounded-lg transition-all duration-300 font-medium hover:bg-blue-50 text-gray-700 hover:text-blue-600">Home</a>
+                  <a href="#courses" className="px-3 xl:px-4 py-2 rounded-lg transition-all duration-300 font-medium hover:bg-blue-50 text-gray-700 hover:text-blue-600">Courses</a>
+                  <a href="#internships" className="px-3 xl:px-4 py-2 rounded-lg transition-all duration-300 font-medium hover:bg-blue-50 text-gray-700 hover:text-blue-600">Internships</a>
+                  <a href="#contact" className="px-3 xl:px-4 py-2 rounded-lg transition-all duration-300 font-medium hover:bg-blue-50 text-gray-700 hover:text-blue-600">Contact</a>
+                  <button onClick={() => setSearchOpen(true)} className="p-2 rounded-lg transition-all duration-300 hover:bg-blue-50 text-gray-700">
                     <Search className="w-5 h-5" />
                   </button>
                 </>
@@ -504,11 +334,11 @@ const CandidateDashboard = () => {
                       placeholder="Search courses, internships..."
                       value={searchQuery}
                       onChange={(e) => handleSearch(e.target.value)}
-                      className={`w-full pl-10 pr-4 py-2 border-2 rounded-lg focus:outline-none transition-all duration-300 ${darkMode ? 'bg-gray-700 border-gray-600 text-white focus:border-blue-500' : 'border-blue-200 focus:border-blue-500'}`}
+                      className="w-full pl-10 pr-4 py-2 border-2 rounded-lg focus:outline-none transition-all duration-300 border-blue-200 focus:border-blue-500"
                       autoFocus
                     />
                   </div>
-                  <button onClick={() => { setSearchOpen(false); clearSearch(); }} className={`p-2 rounded-lg transition-all duration-300 ${darkMode ? 'hover:bg-gray-700 text-gray-300 hover:text-red-400' : 'hover:bg-red-50 text-gray-700 hover:text-red-600'}`}>
+                  <button onClick={() => { setSearchOpen(false); clearSearch(); }} className="p-2 rounded-lg transition-all duration-300 hover:bg-red-50 text-gray-700 hover:text-red-600">
                     <X className="w-5 h-5" />
                   </button>
                 </div>
@@ -527,7 +357,7 @@ const CandidateDashboard = () => {
               <div className="relative ml-2">
                 <button
                   onClick={() => setShowCartDropdown(!showCartDropdown)}
-                  className={`relative p-2 rounded-lg transition-all duration-300 ${darkMode ? 'hover:bg-gray-700 text-gray-300' : 'hover:bg-blue-50 text-gray-700'}`}
+                  className="relative p-2 rounded-lg transition-all duration-300 hover:bg-blue-50 text-gray-700"
                 >
                   <ShoppingCart className="w-6 h-6" />
                   {getCartCount() > 0 && (
@@ -630,25 +460,19 @@ const CandidateDashboard = () => {
                 )}
               </div>
               
-              <div className={`flex items-center gap-2 ml-4 px-3 py-2 rounded-lg ${darkMode ? 'bg-gray-700' : 'bg-blue-50'}`}>
+              <div className="flex items-center gap-2 ml-4 px-3 py-2 rounded-lg bg-blue-50">
                 <User className="w-5 h-5 text-blue-600" />
-                <span className={`font-medium ${darkMode ? 'text-gray-200' : 'text-gray-700'}`}>{user?.name}</span>
+                <span className="font-medium text-gray-700">{user?.name}</span>
               </div>
               
               <button onClick={handleLogout} className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all ml-2">
                 <LogOut className="w-5 h-5" />
                 Logout
               </button>
-              <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-lg transition-all duration-300 ${darkMode ? 'text-yellow-400' : 'text-gray-700'}`}>
-                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
             </div>
 
             <div className="flex items-center gap-2 lg:hidden">
-              <button onClick={() => setDarkMode(!darkMode)} className={`p-2 rounded-lg ${darkMode ? 'text-yellow-400' : 'text-gray-700'}`}>
-                {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className={`p-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
+              <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2 text-gray-700">
                 <Menu className="w-6 h-6" />
               </button>
             </div>
@@ -718,9 +542,11 @@ const CandidateDashboard = () => {
                         className={`p-3 rounded-lg cursor-pointer transition-all ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-50'}`}
                       >
                         <div className="flex items-start gap-3">
-                          {course.image && (
-                            <img src={course.thumbnail || course.image} alt={course.title} className="w-16 h-16 object-cover rounded" />
-                          )}
+                          <img 
+                            src={course.thumbnail || course.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=200&h=200&fit=crop'} 
+                            alt={course.title} 
+                            className="w-16 h-16 object-cover rounded" 
+                          />
                           <div className="flex-1">
                             <h5 className={`font-semibold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{course.title}</h5>
                             <p className={`text-sm line-clamp-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{course.description}</p>
@@ -894,15 +720,27 @@ const CandidateDashboard = () => {
             </button>
 
             <div ref={coursesScrollRef} className="flex gap-8 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-            {courses.slice(0, 5).map((course, idx) => (
+            {courses.slice(0, 5).map((course, idx) => {
+              // Use the actual image from database without cache-busting issues
+              const imageUrl = course.thumbnail || course.image;
+              console.log(`Course ${course.title}: thumbnail=${course.thumbnail}, image=${course.image}`);
+              
+              return (
               <div 
-                key={course._id || `course-${idx}`} 
-                ref={(el) => (courseRefs.current[idx] = el)}
-                data-index={idx}
+                key={course._id || `course-${idx}`}
                 className={`flex-shrink-0 w-80 snap-start rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transform hover:-translate-y-2 transition-all ${darkMode ? 'bg-gray-900' : 'bg-white'}`}
               >
-                {course.thumbnail || course.image ? (
-                  <img src={course.thumbnail || course.image} alt={course.title} className="w-full h-48 object-cover" />
+                {imageUrl ? (
+                  <img 
+                    src={imageUrl} 
+                    alt={course.title} 
+                    className="w-full h-48 object-cover"
+                    onError={(e) => {
+                      console.error(`Failed to load image for ${course.title}:`, imageUrl);
+                      e.target.style.display = 'none';
+                      e.target.parentElement.innerHTML = '<div class="w-full h-48 bg-gradient-to-r from-blue-400 to-purple-500"></div>';
+                    }}
+                  />
                 ) : (
                   <div className="w-full h-48 bg-gradient-to-r from-blue-400 to-purple-500"></div>
                 )}
@@ -941,7 +779,7 @@ const CandidateDashboard = () => {
                   
                   {/* Pricing Section with Full Animation */}
                   {course.price > 0 && (
-                    <div className={`mb-4 ${visibleCards.has(String(idx)) ? 'animate-pricing' : 'opacity-0'}`}>
+                    <div className="mb-4 animate-pricing">
                       {course.originalPrice > 0 && course.originalPrice > course.price ? (
                         // With Discount - Show full pricing layout with animations
                         <>
@@ -1079,7 +917,8 @@ const CandidateDashboard = () => {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+            })}
             </div>
           </div>
         </div>
@@ -1266,7 +1105,7 @@ const CandidateDashboard = () => {
               <div key={idx} className={`p-8 rounded-xl shadow-lg hover:shadow-2xl transition-all ${darkMode ? 'bg-gradient-to-br from-blue-900 to-purple-900' : 'bg-gradient-to-br from-blue-50 to-purple-50'}`}>
                 <div className="flex gap-1 mb-4">
                   {[...Array(5)].map((_, i) => (
-                    <Heart key={i} className="w-5 h-5 fill-red-500 text-red-500" />
+                    <Star key={i} className="w-5 h-5 fill-yellow-500 text-yellow-500" />
                   ))}
                 </div>
                 <p className={`mb-6 italic ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>"{testimonial.text}"</p>
@@ -1353,237 +1192,6 @@ const CandidateDashboard = () => {
         }
       `}</style>
 
-      {/* Payment Modal */}
-      {showPaymentModal && selectedCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full p-6 relative my-8 max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => {
-                setShowPaymentModal(false);
-                setSelectedCourse(null);
-                setProcessingPayment(false);
-                setPaymentScreenshot(null);
-                setScreenshotPreview('');
-                setUpiId('');
-                setShowUpiQR(false);
-              }}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10 bg-white rounded-full p-1"
-            >
-              <X className="w-6 h-6" />
-            </button>
-
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Complete Payment</h2>
-            
-            <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-              <h3 className="font-semibold text-gray-900">{selectedCourse.title}</h3>
-              <p className="text-sm text-gray-600 mt-1">{selectedCourse.category}</p>
-              <p className="text-2xl font-bold text-blue-600 mt-2">₹{selectedCourse.price}</p>
-            </div>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Method
-                </label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  disabled={processingPayment}
-                >
-                  <option value="card">Credit/Debit Card</option>
-                  <option value="upi">UPI</option>
-                  <option value="netbanking">Net Banking</option>
-                  <option value="wallet">Wallet</option>
-                </select>
-              </div>
-
-              {paymentMethod === 'card' && (
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Card Number"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    disabled={processingPayment}
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      placeholder="MM/YY"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      disabled={processingPayment}
-                    />
-                    <input
-                      type="text"
-                      placeholder="CVV"
-                      className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                      disabled={processingPayment}
-                    />
-                  </div>
-                </div>
-              )}
-
-              {paymentMethod === 'upi' && (
-                <div className="space-y-3">
-                  <input
-                    type="text"
-                    placeholder="Enter UPI ID (example@paytm)"
-                    value={upiId}
-                    onChange={(e) => setUpiId(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                    disabled={processingPayment}
-                  />
-                  
-                  {!showUpiQR ? (
-                    <>
-                      <div className="bg-blue-50 p-3 rounded-lg">
-                        <p className="text-xs text-gray-700 mb-2 font-medium">
-                          {isMobileDevice() ? 'Select UPI App:' : 'Click to generate QR Code:'}
-                        </p>
-                        <div className="grid grid-cols-4 gap-2">
-                          <button
-                            type="button"
-                            onClick={(e) => openUpiApp(e)}
-                            className="flex flex-col items-center p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors"
-                            disabled={processingPayment || !upiId}
-                          >
-                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-purple-700 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-1">
-                              PhonePe
-                            </div>
-                            <span className="text-xs text-gray-600">PhonePe</span>
-                          </button>
-                          
-                          <button
-                            type="button"
-                            onClick={(e) => openUpiApp(e)}
-                            className="flex flex-col items-center p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors"
-                            disabled={processingPayment || !upiId}
-                          >
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-1">
-                              Paytm
-                            </div>
-                            <span className="text-xs text-gray-600">Paytm</span>
-                          </button>
-                          
-                          <button
-                            type="button"
-                            onClick={(e) => openUpiApp(e)}
-                            className="flex flex-col items-center p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors"
-                            disabled={processingPayment || !upiId}
-                          >
-                            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-green-700 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-1">
-                              GPay
-                            </div>
-                            <span className="text-xs text-gray-600">GPay</span>
-                          </button>
-                          
-                          <button
-                            type="button"
-                            onClick={(e) => openUpiApp(e)}
-                            className="flex flex-col items-center p-2 bg-white rounded-lg hover:bg-gray-50 transition-colors"
-                            disabled={processingPayment || !upiId}
-                          >
-                            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-orange-700 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-1">
-                              BHIM
-                            </div>
-                            <span className="text-xs text-gray-600">BHIM</span>
-                          </button>
-                        </div>
-                      </div>
-                      
-                      <p className="text-xs text-gray-500 italic">
-                        {isMobileDevice() 
-                          ? '💡 Click on any UPI app to open it and complete payment'
-                          : '💡 Click to generate QR code and scan with your mobile UPI app'
-                        }
-                      </p>
-                    </>
-                  ) : (
-                    <div className="bg-gradient-to-br from-blue-50 to-purple-50 p-4 rounded-lg text-center">
-                      <div className="bg-white p-4 rounded-lg inline-block mb-3">
-                        <img 
-                          src={`https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${encodeURIComponent(upiQRData)}&choe=UTF-8`}
-                          alt="UPI QR Code"
-                          className="w-48 h-48"
-                          onError={(e) => {
-                            // Fallback if Google Charts fails
-                            e.target.src = `https://quickchart.io/qr?text=${encodeURIComponent(upiQRData)}&size=250`;
-                          }}
-                        />
-                      </div>
-                      <p className="text-sm font-semibold text-gray-800 mb-2">Scan QR Code to Pay</p>
-                      <p className="text-xs text-gray-600 mb-3">
-                        Open any UPI app on your mobile and scan this QR code
-                      </p>
-                      <p className="text-lg font-bold text-blue-600 mb-3">₹{selectedCourse.price}</p>
-                      
-                      {/* Screenshot Upload */}
-                      <div className="bg-white p-3 rounded-lg mb-3 border-2 border-dashed border-blue-300">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          📸 Upload Payment Screenshot *
-                        </label>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleScreenshotUpload}
-                          className="w-full text-sm text-gray-600 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                          disabled={processingPayment}
-                        />
-                        {screenshotPreview && (
-                          <div className="mt-3">
-                            <img 
-                              src={screenshotPreview} 
-                              alt="Payment Screenshot Preview" 
-                              className="max-w-full h-32 object-contain mx-auto rounded border"
-                            />
-                            <p className="text-xs text-green-600 mt-1">✓ Screenshot uploaded</p>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <button
-                        onClick={completeUpiPayment}
-                        disabled={processingPayment || !paymentScreenshot}
-                        className={`w-full py-2 rounded-lg font-semibold text-white transition-colors ${
-                          processingPayment || !paymentScreenshot
-                            ? 'bg-gray-400 cursor-not-allowed'
-                            : 'bg-green-600 hover:bg-green-700'
-                        }`}
-                      >
-                        {processingPayment ? 'Processing...' : !paymentScreenshot ? 'Upload screenshot to continue' : 'I have completed the payment'}
-                      </button>
-                      <button
-                        onClick={() => setShowUpiQR(false)}
-                        className="mt-2 text-sm text-gray-600 hover:text-gray-800"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {!showUpiQR && (
-              <button
-                onClick={paymentMethod === 'upi' ? openUpiApp : completeUpiPayment}
-                disabled={processingPayment || (paymentMethod === 'upi' && !upiId)}
-                className={`w-full py-3 rounded-lg font-semibold text-white transition-colors ${
-                  processingPayment || (paymentMethod === 'upi' && !upiId)
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                }`}
-              >
-                {processingPayment ? 'Processing...' : paymentMethod === 'upi' ? 'Generate UPI Payment QR' : `Pay ₹${selectedCourse.price}`}
-              </button>
-            )}
-
-            <p className="text-xs text-gray-500 text-center mt-4">
-              🔒 Secure payment powered by WEintegrity
-            </p>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

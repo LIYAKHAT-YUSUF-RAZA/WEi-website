@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import Navbar from '../components/public/Navbar.jsx';
 
@@ -12,6 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleChange = (e) => {
     setFormData({
@@ -28,8 +29,17 @@ const Login = () => {
     try {
       const user = await login(formData.email, formData.password);
       
+      // Get the redirect URL from location state or localStorage
+      const redirectTo = location.state?.from || localStorage.getItem('redirectAfterLogin');
+      
+      // Clear the stored redirect URL
+      if (redirectTo) {
+        localStorage.removeItem('redirectAfterLogin');
+      }
+      
       if (user.role === 'candidate') {
-        navigate('/candidate/dashboard');
+        // Redirect to the previous page or default to dashboard
+        navigate(redirectTo || '/candidate/dashboard');
       } else if (user.role === 'manager') {
         navigate('/manager/dashboard');
       }

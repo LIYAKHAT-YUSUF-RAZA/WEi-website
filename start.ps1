@@ -23,7 +23,7 @@ Start-Sleep -Seconds 3
 
 Write-Host ""
 Write-Host "🎨 Starting Frontend Server..." -ForegroundColor Cyan
-Write-Host "   Frontend will run on: http://localhost:3000" -ForegroundColor Gray
+Write-Host "   Frontend will run on: http://localhost:5173" -ForegroundColor Gray
 
 # Start frontend in a new PowerShell window
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd '$PWD\frontend'; Write-Host 'Frontend Server' -ForegroundColor Blue; npm run dev"
@@ -34,11 +34,11 @@ Write-Host ""
 Write-Host "✅ Both servers are starting..." -ForegroundColor Green
 Write-Host ""
 Write-Host "📝 Important URLs:" -ForegroundColor Cyan
-Write-Host "   Frontend: http://localhost:3000" -ForegroundColor White
+Write-Host "   Frontend: http://localhost:5173" -ForegroundColor White
 Write-Host "   Backend:  http://localhost:5000" -ForegroundColor White
 Write-Host ""
 Write-Host "🎯 Quick Test:" -ForegroundColor Cyan
-Write-Host "   1. Go to http://localhost:3000" -ForegroundColor White
+Write-Host "   1. Go to http://localhost:5173" -ForegroundColor White
 Write-Host "   2. Register as 'candidate' or 'manager'" -ForegroundColor White
 Write-Host "   3. Explore the features!" -ForegroundColor White
 Write-Host ""

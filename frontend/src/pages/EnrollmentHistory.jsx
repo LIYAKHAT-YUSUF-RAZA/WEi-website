@@ -227,7 +227,45 @@ const EnrollmentHistory = () => {
                             </span>
                           </div>
                         )}
+                        {enrollment.courseStartDate && enrollment.status === 'accepted' && (
+                          <div className="flex items-center gap-2 text-green-600 font-semibold">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-sm">
+                              Course Started: {new Date(enrollment.courseStartDate).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Payment & Course Status */}
+                      {enrollment.status === 'accepted' && enrollment.paymentStatus === 'completed' && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                          <div className="flex items-start gap-3">
+                            <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="font-semibold text-green-900">✅ Payment Completed & Course Active</p>
+                              <p className="text-sm text-green-700 mt-1">
+                                You have full access to all course materials and can start learning immediately.
+                              </p>
+                              {enrollment.paidAt && (
+                                <p className="text-xs text-green-600 mt-2">
+                                  Payment received: {new Date(enrollment.paidAt).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
 
                       {/* Course Details */}
                       <div className="flex flex-wrap gap-4 text-sm text-gray-600 mb-4">

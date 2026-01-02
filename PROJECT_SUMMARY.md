@@ -24,7 +24,7 @@ WEi-website/
 ✅ **Middleware**: Authentication & Role-based authorization
 ✅ **Routes**: Complete RESTful API
 
-### 🎨 Frontend (Port 3000)
+### 🎨 Frontend (Port 5173)
 ✅ **Framework**: React 19 with React Router DOM
 ✅ **Build Tool**: Vite for fast development
 ✅ **Styling**: Tailwind CSS with custom configuration
@@ -100,14 +100,14 @@ cd frontend
 npm run dev
 ```
 
-Then open your browser at: **http://localhost:3000**
+Then open your browser at: **http://localhost:5173**
 
 ---
 
 ## 👥 Testing the Application
 
 ### Step 1: Create a Candidate Account
-1. Go to http://localhost:3000
+1. Go to http://localhost:5173
 2. Click "Register"
 3. Fill in the form:
    - Name: John Doe
@@ -225,7 +225,7 @@ Your MERN stack company website is ready to use!
 **Key Points:**
 - ✅ All packages installed in virtual environment
 - ✅ Backend running on port 5000
-- ✅ Frontend ready on port 3000
+- ✅ Frontend ready on port 5173
 - ✅ Three distinct views: Public, Candidate, Manager
 - ✅ Complete authentication system
 - ✅ Role-based access control

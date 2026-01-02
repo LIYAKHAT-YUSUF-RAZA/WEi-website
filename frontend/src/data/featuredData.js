@@ -1,6 +1,97 @@
 // Featured Courses and Internships Data from GitHub Demo
 
-export const featuredCourses = [];
+export const featuredCourses = [
+  {
+    image: 'https://source.unsplash.com/400x300/?html,coding',
+    title: 'HTML',
+    description: 'Master the fundamentals of HTML and build beautiful, responsive websites from scratch.',
+    category: 'Web Development',
+    duration: '8 weeks',
+    level: 'Beginner',
+    price: 3999,
+    originalPrice: 9999,
+    discountPrice: 3999,
+    discountPercentage: 60,
+    instructorDetails: {
+      name: 'LIYAKHAT'
+    }
+  },
+  {
+    image: 'https://source.unsplash.com/400x300/?programming,javascript',
+    title: 'MERN Stack',
+    description: 'The MERN stack is a popular, open-source JavaScript stack for building modern web applications.',
+    category: 'Web Development',
+    duration: '8 weeks',
+    level: 'Beginner',
+    price: 9,
+    originalPrice: 9999,
+    discountPrice: 9,
+    discountPercentage: 100,
+    instructorDetails: {
+      name: 'LIYAKHAT'
+    }
+  },
+  {
+    image: 'https://source.unsplash.com/400x300/?algorithms,programming',
+    title: 'DSA',
+    description: 'DSA most commonly refers to Data Structures and Algorithms, the foundation of computer science.',
+    category: 'Programming',
+    duration: '8 weeks',
+    level: 'Beginner',
+    price: 7999,
+    originalPrice: 9999,
+    discountPrice: 7999,
+    discountPercentage: 20,
+    instructorDetails: {
+      name: 'LIYAKHAT'
+    }
+  },
+  {
+    image: 'https://source.unsplash.com/400x300/?python,code',
+    title: 'Python Programming',
+    description: 'Learn Python from basics to advanced concepts including data structures, OOP, and popular frameworks.',
+    category: 'Programming',
+    duration: '10 weeks',
+    level: 'Beginner',
+    price: 4999,
+    originalPrice: 12999,
+    discountPrice: 4999,
+    discountPercentage: 62,
+    instructorDetails: {
+      name: 'LIYAKHAT'
+    }
+  },
+  {
+    image: 'https://source.unsplash.com/400x300/?react,web-development',
+    title: 'React.js Development',
+    description: 'Build modern, interactive user interfaces with React. Learn hooks, context, and best practices.',
+    category: 'Web Development',
+    duration: '12 weeks',
+    level: 'Intermediate',
+    price: 5999,
+    originalPrice: 14999,
+    discountPrice: 5999,
+    discountPercentage: 60,
+    instructorDetails: {
+      name: 'LIYAKHAT'
+    }
+  },
+  {
+    image: 'https://source.unsplash.com/400x300/?fullstack,developer',
+    title: 'Full Stack Development',
+    description: 'Become a complete developer by mastering both frontend and backend technologies.',
+    category: 'Web Development',
+    duration: '16 weeks',
+    level: 'Advanced',
+    price: 9999,
+    originalPrice: 24999,
+    discountPrice: 9999,
+    discountPercentage: 60,
+    instructorDetails: {
+      name: 'LIYAKHAT'
+    }
+  }
+];
 
 export const featuredInternships = [
   {

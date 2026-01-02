@@ -29,10 +29,10 @@ npm run dev
 cd frontend
 npm run dev
 ```
-✅ Frontend running at http://localhost:3000
+✅ Frontend running at http://localhost:5173
 
 ### Step 5: Access the Application
-Open your browser and go to: **http://localhost:3000**
+Open your browser and go to: **http://localhost:5173**
 
 ---
 
@@ -81,7 +81,7 @@ MONGODB_URI=mongodb://localhost:27017/weintegrity
 JWT_SECRET=your_very_secure_secret_key_change_this
 EMAIL_USER=your.email@gmail.com
 EMAIL_PASS=your_gmail_app_password
-CLIENT_URL=http://localhost:3000
+CLIENT_URL=http://localhost:5173
 ```
 
 ### How to Get Gmail App Password:
@@ -116,7 +116,7 @@ CLIENT_URL=http://localhost:3000
 
 ### Frontend won't start?
 - Run `npm install` in frontend folder
-- Check port 3000 is available
+- Check port 5173 is available
 - Clear browser cache
 
 ### Can't connect to database?

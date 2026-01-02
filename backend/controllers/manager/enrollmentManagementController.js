@@ -9,6 +9,9 @@ exports.getAllEnrollments = async (req, res) => {
     const filter = {};
     if (status && ['pending', 'accepted', 'rejected'].includes(status)) {
       filter.status = status;
+    } else {
+      // By default, only show pending enrollments that need manager action
+      filter.status = 'pending';
     }
 
     const enrollments = await CourseEnrollment.find(filter)
@@ -41,19 +44,25 @@ exports.acceptEnrollment = async (req, res) => {
       return res.status(400).json({ message: 'Enrollment has already been processed' });
     }
 
-    enrollment.status = 'payment_pending'; // Set to payment_pending instead of accepted
+    // Check if payment has been made
+    if (!enrollment.paymentScreenshot || enrollment.paymentStatus !== 'completed') {
+      return res.status(400).json({ message: 'Cannot accept enrollment without payment confirmation' });
+    }
+
+    enrollment.status = 'accepted'; // Set to accepted after reviewing payment
+    enrollment.courseStartDate = new Date(); // Course starts when manager approves
     enrollment.message = message || '';
     enrollment.respondedAt = new Date();
     enrollment.respondedBy = req.user._id;
 
     await enrollment.save();
 
-    // Send email to candidate requesting payment
+    // Send email to candidate confirming course access
     await sendEnrollmentDecisionToCandidate(
       enrollment.candidate.email,
       enrollment.candidate.name,
       enrollment.course.title,
-      'payment_pending',
+      'accepted',
       message
     );
 
