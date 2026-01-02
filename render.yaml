@@ -30,5 +30,5 @@ services:
     buildCommand: cd frontend && npm install && npm run build
     envVars:
       - key: VITE_API_URL
-        value: https://wei-website.onrender.com
+        value: https://wei-website-backend.onrender.com
     autoDeploy: true
