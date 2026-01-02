@@ -22,6 +22,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://dev.weintegrity.com',
   'http://dev.weintegrity.com',
+  'https://wei-website-frontend.onrender.com',
   'https://weintegrity-frontend.onrender.com',
   process.env.FRONTEND_URL
 ].filter(Boolean);
