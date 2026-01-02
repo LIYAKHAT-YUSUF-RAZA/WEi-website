@@ -2,7 +2,7 @@ services:
   # Backend API Service
   - type: web
     name: weintegrity-backend
-    env: node
+    runtime: node
     region: oregon
     plan: free
     buildCommand: cd backend && npm install
@@ -24,23 +24,11 @@ services:
   # Frontend Static Site
   - type: web
     name: weintegrity-frontend
-    env: static
+    runtime: static
     region: oregon
     plan: free
     buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
-        value: https://weintegrity-backend.onrender.com
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: SAMEORIGIN
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
+        value: https://wei-website.onrender.com
     autoDeploy: true
