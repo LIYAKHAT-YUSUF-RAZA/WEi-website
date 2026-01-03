@@ -3,6 +3,8 @@ const path = require('path');
 const fs = require('fs');
 const app = express();
 
+const PORT = process.env.PORT || 3000;
+
 // Log all requests with timestamp
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url} - IP: ${req.ip}`);
@@ -21,11 +23,25 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Serve static files with cache headers
-// This middleware will serve actual files (JS, CSS, images, etc.)
+// Favicon handler - check if it exists, otherwise serve default or ignore
+app.get('/favicon.ico', (req, res) => {
+  const faviconPath = path.join(__dirname, 'dist', 'favicon.ico');
+  const faviconSvgPath = path.join(__dirname, 'dist', 'favicon.svg');
+  
+  if (fs.existsSync(faviconPath)) {
+    res.sendFile(faviconPath);
+  } else if (fs.existsSync(faviconSvgPath)) {
+    res.sendFile(faviconSvgPath);
+  } else {
+    res.status(204).end(); // No content - silently ignore
+  }
+});
+
+// Serve static files with proper error handling
 app.use(express.static(path.join(__dirname, 'dist'), {
   maxAge: '1h',
-  index: false, // Don't serve index.html automatically
+  index: false,
+  fallthrough: true, // CRITICAL: Allow requests to continue if file not found
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
@@ -33,41 +49,40 @@ app.use(express.static(path.join(__dirname, 'dist'), {
       res.setHeader('Content-Type', 'text/css; charset=utf-8');
     } else if (filePath.endsWith('.html')) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.setHeader('Cache-Control', 'no-cache'); // Don't cache HTML
+      res.setHeader('Cache-Control', 'no-cache');
     } else if (filePath.endsWith('.svg')) {
       res.setHeader('Content-Type', 'image/svg+xml');
+    } else if (filePath.endsWith('.ico')) {
+      res.setHeader('Content-Type', 'image/x-icon');
     }
   }
 }));
 
-// Catch-all route for SPA - serve index.html for ALL routes
-// This MUST be after static middleware to avoid blocking asset requests
-app.get('*', (req, res) => {
+// Catch-all route for SPA - MUST handle ALL non-static routes
+app.get('*', (req, res, next) => {
   const indexPath = path.join(__dirname, 'dist', 'index.html');
-  console.log(`SPA Route: ${req.url} -> Serving index.html`);
+  console.log(`[SPA] ${req.url} -> Serving index.html`);
   
   if (fs.existsSync(indexPath)) {
-    // Set no-cache headers for HTML
     res.set({
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0'
     });
-    res.sendFile(indexPath);
+    return res.sendFile(indexPath);
   } else {
-    console.error(`ERROR: index.html not found at ${indexPath}`);
-    res.status(404).send('Application not built. Please check deployment logs.');
+    console.error(`[ERROR] index.html not found at ${indexPath}`);
+    return res.status(500).send('Application build not found. Check deployment logs.');
   }
 });
 
 // Global error handler
 app.use((err, req, res, next) => {
-  console.error('Server Error:', err);
+  console.error('[ERROR]', err);
   res.status(500).send('Internal Server Error');
 });
 
-const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, '0.0.0.0', () => {
   const distPath = path.join(__dirname, 'dist');
   console.log('='.repeat(50));
