@@ -50,8 +50,9 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Frontend server running on port ${PORT}`);
-  console.log(`Serving from: ${path.join(__dirname, 'dist')}`);
-  console.log(`Files in dist:`, fs.readdirSync(path.join(__dirname, 'dist')));
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✓ Frontend server running on port ${PORT}`);
+  console.log(`✓ Serving from: ${path.join(__dirname, 'dist')}`);
+  console.log(`✓ Files in dist:`, fs.readdirSync(path.join(__dirname, 'dist')));
+  console.log(`✓ Server ready to accept connections`);
 });
