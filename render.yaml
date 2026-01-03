@@ -22,10 +22,9 @@ services:
 
   - type: web
     name: weintegrity-frontend
-    runtime: static
+    runtime: node
     buildCommand: cd frontend && npm install && npm run build
-    staticPublishPath: frontend/dist
-    pullRequestPreviewsEnabled: true
+    startCommand: cd frontend && npm start
     envVars:
       - key: VITE_API_URL
         value: https://wei-website-backend.onrender.com
