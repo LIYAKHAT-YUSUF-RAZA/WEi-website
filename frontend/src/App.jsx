@@ -60,6 +60,19 @@ const PrivateRoute = ({ children, role }) => {
   return children;
 };
 
+// Smart redirect component for /dashboard route
+const SmartDashboardRedirect = () => {
+  const { user } = useAuth();
+  
+  if (user?.role === 'candidate') {
+    return <Navigate to="/candidate/dashboard" replace />;
+  } else if (user?.role === 'manager') {
+    return <Navigate to="/manager/dashboard" replace />;
+  }
+  
+  return <Navigate to="/" replace />;
+};
+
 function App() {
   return (
     <CartProvider>
@@ -71,6 +84,16 @@ function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
+
+            {/* Smart Dashboard Route - redirects based on user role */}
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <SmartDashboardRedirect />
+                </PrivateRoute>
+              }
+            />
 
             {/* Candidate Routes */}
             <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
