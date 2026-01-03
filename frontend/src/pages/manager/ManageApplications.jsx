@@ -41,17 +41,24 @@ const ManageApplications = () => {
 
   const handleAccept = async (applicationId) => {
     try {
-      await axios.put(`/api/manager/applications/${applicationId}`, { 
+      console.log('Accepting application:', applicationId);
+      console.log('Auth token:', localStorage.getItem('token') ? 'Present' : 'Missing');
+      
+      const response = await axios.put(`/api/manager/applications/${applicationId}`, { 
         status: 'accepted',
         message 
       });
+      
+      console.log('Accept response:', response.data);
       alert('Application accepted successfully! Email sent to candidate.');
       setSelectedApplication(null);
       setMessage('');
       fetchApplications();
       fetchStats();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error accepting application');
+      console.error('Error accepting application:', error);
+      console.error('Error response:', error.response);
+      alert(error.response?.data?.message || `Error accepting application: ${error.message}`);
     }
   };
 

@@ -20,11 +20,14 @@ app.use(compression());
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:3000',
   'https://dev.weintegrity.com',
   'http://dev.weintegrity.com',
   'https://wei-website-frontend.onrender.com',
   'https://weintegrity-frontend.onrender.com',
-  process.env.FRONTEND_URL
+  'https://weintegrity.onrender.com',
+  process.env.FRONTEND_URL,
+  process.env.CLIENT_URL
 ].filter(Boolean);
 
 app.use(cors({

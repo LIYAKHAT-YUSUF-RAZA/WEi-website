@@ -53,12 +53,20 @@ const getAllApplications = async (req, res) => {
 // @access  Private (Manager)
 const updateApplicationStatus = async (req, res) => {
   try {
+    console.log('Update application request:', {
+      applicationId: req.params.id,
+      userId: req.user._id,
+      userRole: req.user.role,
+      body: req.body
+    });
+    
     const { status, message } = req.body;
     
     const application = await Application.findById(req.params.id)
       .populate('candidateId', 'name email');
 
     if (!application) {
+      console.error('Application not found:', req.params.id);
       return res.status(404).json({ message: 'Application not found' });
     }
 
@@ -71,16 +79,23 @@ const updateApplicationStatus = async (req, res) => {
     application.reviewedBy = req.user._id;
 
     await application.save();
+    console.log('Application updated successfully:', application._id);
 
-    // Send email to candidate using emailService
-    const { sendInternshipApplicationDecisionToCandidate } = require('../../utils/emailService');
-    await sendInternshipApplicationDecisionToCandidate(
-      application.candidateId.email,
-      application.candidateId.name,
-      internship?.title || 'Internship Position',
-      status,
-      message
-    );
+    // Send email to candidate using emailService (non-blocking)
+    try {
+      const { sendInternshipApplicationDecisionToCandidate } = require('../../utils/emailService');
+      await sendInternshipApplicationDecisionToCandidate(
+        application.candidateId.email,
+        application.candidateId.name,
+        internship?.title || 'Internship Position',
+        status,
+        message
+      );
+      console.log('Email sent successfully to:', application.candidateId.email);
+    } catch (emailError) {
+      console.error('Email sending failed (non-critical):', emailError.message);
+      // Don't fail the request if email fails
+    }
 
     res.json({ message: 'Application updated successfully', application });
   } catch (error) {
