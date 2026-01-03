@@ -9,9 +9,23 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint - Define BEFORE static middleware
+app.get('/health', (req, res) => {
+  const distPath = path.join(__dirname, 'dist');
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    port: PORT,
+    distExists: fs.existsSync(distPath),
+    distFiles: fs.existsSync(distPath) ? fs.readdirSync(distPath) : []
+  });
+});
+
 // Serve static files with cache headers
+// This middleware will serve actual files (JS, CSS, images, etc.)
 app.use(express.static(path.join(__dirname, 'dist'), {
   maxAge: '1h',
+  index: false, // Don't serve index.html automatically
   setHeaders: (res, filePath) => {
     if (filePath.endsWith('.js')) {
       res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
@@ -19,38 +33,27 @@ app.use(express.static(path.join(__dirname, 'dist'), {
       res.setHeader('Content-Type', 'text/css; charset=utf-8');
     } else if (filePath.endsWith('.html')) {
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache'); // Don't cache HTML
     } else if (filePath.endsWith('.svg')) {
       res.setHeader('Content-Type', 'image/svg+xml');
     }
   }
 }));
 
-// Root health check - CRITICAL for Render
-app.get('/', (req, res) => {
-  const indexPath = path.join(__dirname, 'dist', 'index.html');
-  if (fs.existsSync(indexPath)) {
-    res.sendFile(indexPath);
-  } else {
-    res.status(500).send('Build error: index.html not found');
-  }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    port: PORT,
-    distFiles: fs.readdirSync(path.join(__dirname, 'dist'))
-  });
-});
-
 // Catch-all route for SPA - serve index.html for ALL routes
+// This MUST be after static middleware to avoid blocking asset requests
 app.get('*', (req, res) => {
   const indexPath = path.join(__dirname, 'dist', 'index.html');
   console.log(`SPA Route: ${req.url} -> Serving index.html`);
   
   if (fs.existsSync(indexPath)) {
+    // Set no-cache headers for HTML
+    res.set({
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    });
     res.sendFile(indexPath);
   } else {
     console.error(`ERROR: index.html not found at ${indexPath}`);
