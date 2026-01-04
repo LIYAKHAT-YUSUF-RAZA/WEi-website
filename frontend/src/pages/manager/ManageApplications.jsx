@@ -41,8 +41,6 @@ const ManageApplications = () => {
 
   const handleAccept = async (applicationId) => {
     try {
-      console.log('Accepting application:', applicationId);
-      console.log('Auth token:', localStorage.getItem('token') ? 'Present' : 'Missing');
       
       const response = await axios.put(`/api/manager/applications/${applicationId}`, { 
         status: 'accepted',

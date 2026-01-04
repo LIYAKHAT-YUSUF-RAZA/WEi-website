@@ -18,8 +18,6 @@ const register = async (req, res) => {
   try {
     const { name, email, password, role, phone } = req.body;
 
-    console.log('Registration attempt:', { name, email, role, phone });
-
     // Validate required fields
     if (!name || !email || !password) {
       return res.status(400).json({ message: 'Please provide all required fields' });
@@ -47,7 +45,6 @@ const register = async (req, res) => {
     });
 
     if (user) {
-      console.log('User created successfully:', user._id);
       res.status(201).json({
         _id: user._id,
         name: user.name,
@@ -69,25 +66,17 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log('🔑 Login attempt:', { email, passwordLength: password?.length });
-
     // Check for user
     const user = await User.findOne({ email });
     
     if (!user) {
-      console.log('❌ User not found:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
-
-    console.log('✅ User found:', { email: user.email, role: user.role });
 
     // Check password
     const isMatch = await user.comparePassword(password);
     
-    console.log('🔐 Password match:', isMatch);
-    
     if (!isMatch) {
-      console.log('❌ Password incorrect for:', email);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 

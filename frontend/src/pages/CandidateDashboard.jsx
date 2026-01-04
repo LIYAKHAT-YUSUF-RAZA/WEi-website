@@ -111,7 +111,6 @@ const CandidateDashboard = () => {
         
         // Use only database courses
         const dbCourses = coursesRes.data || [];
-        console.log('Candidate Dashboard - Fetched courses:', dbCourses.length, dbCourses);
         const sortedDbCourses = dbCourses.sort((a, b) => 
           new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
         );

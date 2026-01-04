@@ -53,12 +53,6 @@ const getAllApplications = async (req, res) => {
 // @access  Private (Manager)
 const updateApplicationStatus = async (req, res) => {
   try {
-    console.log('Update application request:', {
-      applicationId: req.params.id,
-      userId: req.user._id,
-      userRole: req.user.role,
-      body: req.body
-    });
     
     const { status, message } = req.body;
     
@@ -66,7 +60,6 @@ const updateApplicationStatus = async (req, res) => {
       .populate('candidateId', 'name email');
 
     if (!application) {
-      console.error('Application not found:', req.params.id);
       return res.status(404).json({ message: 'Application not found' });
     }
 
@@ -91,9 +84,8 @@ const updateApplicationStatus = async (req, res) => {
         status,
         message
       );
-      console.log('Email sent successfully to:', application.candidateId.email);
     } catch (emailError) {
-      console.error('Email sending failed (non-critical):', emailError.message);
+      // Email sending failed (non-critical)
       // Don't fail the request if email fails
     }
 
