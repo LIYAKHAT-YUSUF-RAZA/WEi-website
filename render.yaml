@@ -22,13 +22,9 @@ services:
 
   - type: web
     name: weintegrity-frontend
-    runtime: node
-    buildCommand: cd frontend && npm install && npm run build && ls -laR dist/
-    startCommand: cd frontend && bash start.sh
+    runtime: static
+    buildCommand: cd frontend && npm install && npm run build
+    staticPublishPath: ./frontend/dist
     envVars:
       - key: VITE_API_URL
         value: https://wei-website-backend.onrender.com
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
