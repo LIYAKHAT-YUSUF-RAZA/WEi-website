@@ -50,6 +50,7 @@ const register = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        permissions: user.permissions,
         token: generateToken(user._id)
       });
     }
@@ -85,6 +86,7 @@ const login = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      permissions: user.permissions,
       token: generateToken(user._id)
     });
   } catch (error) {

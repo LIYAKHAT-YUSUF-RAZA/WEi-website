@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import { AuthProvider } from './context/AuthContext.jsx'
 import axios from 'axios'
+import './performanceOptimization.js'
 
 // Configure axios base URL
 // In production, use environment variable or default Render backend URL

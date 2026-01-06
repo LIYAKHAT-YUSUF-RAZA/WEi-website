@@ -21,6 +21,8 @@ const CourseDetails = () => {
   const [expandedModule, setExpandedModule] = useState(null);
   const [darkMode] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [requestMessage, setRequestMessage] = useState('');
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -156,6 +158,33 @@ const CourseDetails = () => {
         {enrolling ? 'Processing...' : 'Enroll Now'}
       </button>
     );
+  };
+
+  const handleSubmitCourseRequest = async () => {
+    if (!user || user.role !== 'candidate') {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      await axios.post('/api/course-requests', {
+        courseId: id,
+        message: requestMessage
+      });
+      
+      setMessage({ 
+        type: 'success', 
+        text: 'Course enrollment request submitted successfully! Managers will review your request soon.' 
+      });
+      setShowRequestModal(false);
+      setRequestMessage('');
+      setTimeout(() => setMessage({ type: '', text: '' }), 4000);
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.message || 'Failed to submit course request' 
+      });
+    }
   };
 
   const toggleModule = (index) => {
@@ -349,6 +378,12 @@ const CourseDetails = () => {
                   className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50"
                 >
                   {enrolling ? 'Enrolling...' : 'Start Learning Now'}
+                </button>
+                <button 
+                  onClick={() => setShowRequestModal(true)}
+                  className="flex-1 px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold transition-all duration-300 hover:bg-purple-50"
+                >
+                  📋 Request Enrollment
                 </button>
                 <button 
                   onClick={() => navigate('/courses')}
@@ -652,6 +687,54 @@ const CourseDetails = () => {
           </div>
         </div>
       </footer>
+
+      {/* Course Request Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900">📋 Request Course Enrollment</h3>
+              <p className="text-sm text-gray-600 mt-1">{course?.title}</p>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Message (Optional)
+                </label>
+                <textarea
+                  value={requestMessage}
+                  onChange={(e) => setRequestMessage(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Tell the managers why you want to enroll in this course..."
+                  rows="4"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Your request will be sent to managers for approval. You'll receive an email when they respond.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex gap-4">
+              <button
+                onClick={() => {
+                  setShowRequestModal(false);
+                  setRequestMessage('');
+                }}
+                className="flex-1 px-4 py-2 bg-gray-300 text-gray-900 font-semibold rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitCourseRequest}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white font-semibold rounded-lg hover:bg-purple-700"
+              >
+                Submit Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

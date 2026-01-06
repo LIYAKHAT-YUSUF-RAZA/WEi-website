@@ -1,43 +1,7 @@
 const ManagerRequest = require('../models/ManagerRequest');
 const User = require('../models/User');
-const nodemailer = require('nodemailer');
 const bcrypt = require('bcryptjs');
-
-// Create email transporter or use development mode
-const createTransporter = () => {
-  // Check if we're in development mode (no valid email credentials)
-  const isDevelopment = !process.env.EMAIL_USER || !process.env.EMAIL_PASS || 
-                        process.env.EMAIL_USER === 'your_email@gmail.com' ||
-                        process.env.EMAIL_PASS === 'your_16_char_app_password_here';
-  
-  if (isDevelopment) {
-    return null;
-  }
-  
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-};
-
-// Helper function to send email or log in development
-const sendEmailOrLog = async (transporter, emailData) => {
-  if (!transporter) {
-    // Development mode: Email not sent
-    return { success: true, mode: 'development' };
-  }
-  
-  // Production mode: Actually send the email
-  try {
-    await transporter.sendMail(emailData);
-    return { success: true, mode: 'production' };
-  } catch (error) {
-    throw error;
-  }
-};
+const emailService = require('../utils/emailService');
 
 // @desc    Create manager request
 // @route   POST /api/manager-requests
@@ -56,6 +20,7 @@ const createManagerRequest = async (req, res) => {
     const requestExists = await ManagerRequest.findOne({ email });
     if (requestExists) {
       if (requestExists.status === 'pending') {
+        console.log('❌ Pending request already exists:', email);
         return res.status(400).json({ message: 'Your request is already pending approval' });
       }
       if (requestExists.status === 'rejected') {
@@ -75,35 +40,21 @@ const createManagerRequest = async (req, res) => {
       phone,
       status: 'pending'
     });
+    console.log('✅ Manager request created:', managerRequest._id);
 
-    // Notify all existing managers about the new request
     const existingManagers = await User.find({ role: 'manager' });
+    console.log(`📧 Found ${existingManagers.length} existing managers to notify`);
     
     if (existingManagers.length > 0) {
-      const transporter = createTransporter();
-      
       for (const manager of existingManagers) {
         try {
-          const emailContent = {
-            from: process.env.EMAIL_USER || 'noreply@weintegrity.com',
-            to: manager.email,
-            subject: 'New Manager Account Request',
-            html: `
-              <h2>New Manager Account Request</h2>
-              <p>A new manager wants to create an account:</p>
-              <ul>
-                <li><strong>Name:</strong> ${name}</li>
-                <li><strong>Email:</strong> ${email}</li>
-                <li><strong>Phone:</strong> ${phone || 'Not provided'}</li>
-              </ul>
-              <p>Please login to your dashboard to review and approve/reject this request.</p>
-              <p><a href="${process.env.CLIENT_URL}/manager/dashboard">Go to Dashboard</a></p>
-            `
-          };
-          
-          await sendEmailOrLog(transporter, emailContent);
+          await emailService.sendNewManagerRequestNotification(manager.email, {
+            name,
+            email,
+            phone
+          });
         } catch (emailError) {
-          // Email error logged for monitoring
+          // Don't fail the request if email fails
         }
       }
     }
@@ -114,6 +65,13 @@ const createManagerRequest = async (req, res) => {
     });
 
   } catch (error) {
+    // Handle MongoDB duplicate key error
+    if (error.code === 11000) {
+      return res.status(400).json({ 
+        message: 'A manager request with this email already exists. Please use a different email or contact support.' 
+      });
+    }
+    
     res.status(500).json({ message: error.message });
   }
 };
@@ -124,6 +82,7 @@ const createManagerRequest = async (req, res) => {
 const getManagerRequests = async (req, res) => {
   try {
     const requests = await ManagerRequest.find().sort({ createdAt: -1 });
+    
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -174,38 +133,26 @@ const updateManagerRequest = async (req, res) => {
       
       await User.collection.insertOne(userDoc);
       const newManager = await User.findOne({ email: managerRequest.email });
-
-      // Send approval email
-      const transporter = createTransporter();
       
+      console.log(`\ud83d\udc64 New manager account created: ${managerRequest.email}`);
+
+      // Send approval email to new manager
       try {
-        const approvalEmail = {
-          from: process.env.EMAIL_USER || 'noreply@weintegrity.com',
-          to: managerRequest.email,
-          subject: 'Manager Account Approved',
-          html: `
-            <h2>Welcome to WEintegrity!</h2>
-            <p>Dear ${managerRequest.name},</p>
-            <p>Your manager account request has been approved! You can now login to the system.</p>
-            <h3>Your Access Permissions:</h3>
-            <ul>
-              ${permissions?.fullAccess ? '<li><strong>Full Access</strong> - You have complete control</li>' : ''}
-              ${permissions?.canManageCourses ? '<li>Manage Courses</li>' : ''}
-              ${permissions?.canManageInternships ? '<li>Manage Internships</li>' : ''}
-              ${permissions?.canApproveApplications ? '<li>Approve Applications</li>' : ''}
-              ${permissions?.canRejectApplications ? '<li>Reject Applications</li>' : ''}
-              ${permissions?.canViewAllApplications ? '<li>View All Applications</li>' : ''}
-              ${permissions?.canManageNotifications ? '<li>Manage Notifications</li>' : ''}
-            </ul>
-            <p><strong>Login URL:</strong> <a href="${process.env.CLIENT_URL}/login">${process.env.CLIENT_URL}/login</a></p>
-            <p><strong>Email:</strong> ${managerRequest.email}</p>
-            <p>Please use the password you set during registration to login.</p>
-          `
-        };
-        
-        await sendEmailOrLog(transporter, approvalEmail);
+        console.log('\ud83d\udce7 Sending approval email...');
+        const emailResult = await emailService.sendManagerAccountApprovalEmail(
+          managerRequest.email,
+          managerRequest.name,
+          permissions || managerRequest.permissions
+        );
+        console.log(`\u2705 Email service response:`, emailResult);
       } catch (emailError) {
-        // Email error logged for monitoring
+        console.error('\u274c EMAIL SENDING FAILED:', emailError);
+        console.error('\u274c Error stack:', emailError.stack);
+        console.error('\u274c Environment check:', {
+          EMAIL_USER: process.env.EMAIL_USER ? 'Set' : 'NOT SET',
+          EMAIL_PASS: process.env.EMAIL_PASS ? 'Set (length: ' + process.env.EMAIL_PASS.length + ')' : 'NOT SET'
+        });
+        // Continue even if email fails - account is already created
       }
 
       await managerRequest.save();
@@ -222,25 +169,18 @@ const updateManagerRequest = async (req, res) => {
     } else if (status === 'rejected') {
       await managerRequest.save();
 
-      // Send rejection email
-      const transporter = createTransporter();
-      
+      // Send rejection email to the applicant
       try {
-        const rejectionEmail = {
-          from: process.env.EMAIL_USER || 'noreply@weintegrity.com',
-          to: managerRequest.email,
-          subject: 'Manager Account Request Status',
-          html: `
-            <h2>Account Request Update</h2>
-            <p>Dear ${managerRequest.name},</p>
-            <p>We regret to inform you that your manager account request has been declined.</p>
-            <p>If you believe this is an error, please contact the administrator.</p>
-          `
-        };
-        
-        await sendEmailOrLog(transporter, rejectionEmail);
+        console.log('\ud83d\udce7 Sending rejection email...');
+        await emailService.sendManagerAccountRejectionEmail(
+          managerRequest.email,
+          managerRequest.name
+        );
+        console.log(`\u2705 Successfully sent rejection email to ${managerRequest.email}`);
       } catch (emailError) {
-        // Email error logged for monitoring
+        console.error('\u274c Failed to send manager rejection email:', emailError);
+        console.error('\u274c Error stack:', emailError.stack);
+        // Continue even if email fails
       }
 
       res.json({ message: 'Manager request rejected' });

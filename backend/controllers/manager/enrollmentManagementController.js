@@ -9,10 +9,8 @@ exports.getAllEnrollments = async (req, res) => {
     const filter = {};
     if (status && ['pending', 'accepted', 'rejected'].includes(status)) {
       filter.status = status;
-    } else {
-      // By default, only show pending enrollments that need manager action
-      filter.status = 'pending';
     }
+    // If no status filter, show ALL enrollments (not just pending)
 
     const enrollments = await CourseEnrollment.find(filter)
       .populate('candidate', 'name email phone')

@@ -37,4 +37,27 @@ const isCandidate = (req, res, next) => {
   next();
 };
 
-module.exports = { auth, isManager, isCandidate };
+// Permission-based middleware
+const checkPermission = (permissionName) => {
+  return (req, res, next) => {
+    if (req.user.role !== 'manager') {
+      return res.status(403).json({ message: 'Access denied. Manager role required.' });
+    }
+
+    // Check if user has fullAccess
+    if (req.user.permissions?.fullAccess) {
+      return next();
+    }
+
+    // Check specific permission
+    if (!req.user.permissions || !req.user.permissions[permissionName]) {
+      return res.status(403).json({ 
+        message: `Access denied. You don't have permission to ${permissionName.replace('can', '').replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.` 
+      });
+    }
+
+    next();
+  };
+};
+
+module.exports = { auth, isManager, isCandidate, checkPermission };

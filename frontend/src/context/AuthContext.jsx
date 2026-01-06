@@ -20,8 +20,20 @@ export const AuthProvider = ({ children }) => {
     const userData = localStorage.getItem('user');
     
     if (token && userData) {
-      setUser(JSON.parse(userData));
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // If permissions are missing, fetch them from the server
+      if (!parsedUser.permissions) {
+        axios.get('/api/auth/profile')
+          .then(res => {
+            const updatedUser = { ...parsedUser, permissions: res.data.permissions };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setUser(updatedUser);
+          })
+          .catch(err => console.error('Failed to fetch permissions:', err));
+      }
     }
     setLoading(false);
   }, []);
@@ -66,6 +78,13 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated: !!user,
     isCandidate: user?.role === 'candidate',
     isManager: user?.role === 'manager',
+    permissions: user?.permissions || {},
+    hasPermission: (permission) => {
+      if (!user || user.role !== 'manager') return false;
+      if (user.permissions?.fullAccess) return true;
+      return user.permissions?.[permission] || false;
+    },
+    hasFullAccess: user?.permissions?.fullAccess || false,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

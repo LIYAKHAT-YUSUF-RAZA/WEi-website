@@ -54,6 +54,7 @@ app.use('/api/internships', require('./routes/internshipRoutes'));
 app.use('/api/applications', require('./routes/applicationRoutes'));
 app.use('/api/manager', require('./routes/managerRoutes'));
 app.use('/api/manager-requests', require('./routes/managerRequestRoutes'));
+app.use('/api/course-requests', require('./routes/courseRequestRoutes'));
 app.use('/api/managers', require('./routes/managerAccountRoutes'));
 app.use('/api/candidates', require('./routes/candidateRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
@@ -73,4 +74,7 @@ app.use((err, req, res, next) => {
 
 // Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT);
+app.listen(PORT, () => {
+  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`📧 Email configured: ${process.env.EMAIL_USER ? '✅ Yes' : '❌ No'}`);
+});

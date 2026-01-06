@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/public/Navbar.jsx';
 
@@ -190,6 +191,12 @@ const ManageManagers = () => {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <Link
+                          to={`/manager/managers/${manager._id}`}
+                          className="text-blue-600 hover:text-blue-900 mr-4"
+                        >
+                          👁️ View Details
+                        </Link>
                         <button
                           onClick={() => handleEditPermissions(manager)}
                           className="text-indigo-600 hover:text-indigo-900 mr-4"

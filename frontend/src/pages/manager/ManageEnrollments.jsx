@@ -20,11 +20,19 @@ const ManageEnrollments = () => {
   const fetchEnrollments = async () => {
     try {
       setLoading(true);
-      const queryParam = filter !== 'all' ? `?status=${filter}` : '';
-      const response = await axios.get(`/api/manager/enrollments${queryParam}`);
-      setEnrollments(response.data);
+      // Always fetch from the main endpoint - it handles all statuses
+      const response = await axios.get('/api/manager/enrollments');
+      
+      // Filter client-side if needed
+      let filteredData = response.data;
+      if (filter !== 'all') {
+        filteredData = response.data.filter(e => e.status === filter);
+      }
+      
+      setEnrollments(filteredData);
     } catch (error) {
       console.error('Error fetching enrollments:', error);
+      setEnrollments([]);
     } finally {
       setLoading(false);
     }

@@ -26,7 +26,9 @@ const EnrollmentHistory = lazy(() => import('./pages/EnrollmentHistory.jsx'));
 const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard.jsx'));
 const ManagerRequests = lazy(() => import('./pages/ManagerRequests.jsx'));
 const ManageManagers = lazy(() => import('./pages/ManageManagers.jsx'));
+const ManagerDetails = lazy(() => import('./pages/ManagerDetails.jsx'));
 const ManageCandidates = lazy(() => import('./pages/ManageCandidates.jsx'));
+const ManageCourseRequests = lazy(() => import('./pages/ManageCourseRequests.jsx'));
 const AddCourse = lazy(() => import('./pages/manager/AddCourse.jsx'));
 const AddInternship = lazy(() => import('./pages/manager/AddInternship.jsx'));
 const ManageCourses = lazy(() => import('./pages/manager/ManageCourses.jsx'));
@@ -55,6 +57,68 @@ const PrivateRoute = ({ children, role }) => {
 
   if (role && user.role !== role) {
     return <Navigate to="/" />;
+  }
+
+  return children;
+};
+
+// Permission-based route component
+const PermissionRoute = ({ children, permission, requireFullAccess = false }) => {
+  const { user, loading, hasPermission, hasFullAccess } = useAuth();
+
+  if (loading) {
+    return <PageLoader />;
+  }
+
+  if (!user) {
+    return <Navigate to="/login" />;
+  }
+
+  if (user.role !== 'manager') {
+    return <Navigate to="/" />;
+  }
+
+  // If user has full access, always allow
+  if (hasFullAccess) {
+    return children;
+  }
+
+  // Check if full access is required
+  if (requireFullAccess && !hasFullAccess) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">⛔ Access Denied</h2>
+          <p className="text-gray-700 mb-4">You don't have permission to access this page.</p>
+          <p className="text-sm text-gray-500 mb-6">This feature requires full manager access.</p>
+          <button
+            onClick={() => window.history.back()}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            ← Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check specific permission
+  if (permission && !hasPermission(permission)) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="text-center p-8 bg-white rounded-lg shadow-lg max-w-md">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">⛔ Access Denied</h2>
+          <p className="text-gray-700 mb-4">You don't have permission to access this page.</p>
+          <p className="text-sm text-gray-500 mb-6">Required permission: {permission.replace('can', '').replace(/([A-Z])/g, ' $1').toLowerCase().trim()}</p>
+          <button
+            onClick={() => window.history.back()}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+          >
+            ← Go Back
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return children;
@@ -192,81 +256,97 @@ function App() {
             <Route
               path="/manager/requests"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute requireFullAccess={true}>
                   <ManagerRequests />
-                </PrivateRoute>
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/manage-managers"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute requireFullAccess={true}>
                   <ManageManagers />
-                </PrivateRoute>
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="/manager/managers/:id"
+              element={
+                <PermissionRoute requireFullAccess={true}>
+                  <ManagerDetails />
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/manage-candidates"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute requireFullAccess={true}>
                   <ManageCandidates />
-                </PrivateRoute>
+                </PermissionRoute>
+              }
+            />
+            <Route
+              path="/manager/course-requests"
+              element={
+                <PermissionRoute requireFullAccess={true}>
+                  <ManageCourseRequests />
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/add-course"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute permission="canManageCourses">
                   <AddCourse />
-                </PrivateRoute>
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/add-internship"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute permission="canManageInternships">
                   <AddInternship />
-                </PrivateRoute>
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/courses"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute permission="canManageCourses">
                   <ManageCourses />
-                </PrivateRoute>
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/internships"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute permission="canManageInternships">
                   <ManageInternships />
-                </PrivateRoute>
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/enrollments"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute permission="canManageCourses">
                   <ManageEnrollments />
-                </PrivateRoute>
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/applications"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute permission="canViewAllApplications">
                   <ManageApplications />
-                </PrivateRoute>
+                </PermissionRoute>
               }
             />
             <Route
               path="/manager/instructors"
               element={
-                <PrivateRoute role="manager">
+                <PermissionRoute permission="canManageCourses">
                   <ManageInstructors />
-                </PrivateRoute>
+                </PermissionRoute>
               }
             />
 

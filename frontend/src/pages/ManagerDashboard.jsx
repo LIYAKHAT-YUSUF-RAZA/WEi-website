@@ -2,8 +2,21 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from '../components/public/Navbar.jsx';
+import PermissionGuard from '../components/PermissionGuard.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
+
+// Badge component to show pending counts
+const Badge = ({ count }) => {
+  if (!count || count === 0) return null;
+  return (
+    <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-y-0.5 bg-red-600 rounded-full">
+      {count}
+    </span>
+  );
+};
 
 const ManagerDashboard = () => {
+  const { hasPermission, hasFullAccess } = useAuth();
   const [applications, setApplications] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   const [stats, setStats] = useState(null);
@@ -13,6 +26,14 @@ const ManagerDashboard = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
+  
+  // Pending counts for badge notifications
+  const [pendingCounts, setPendingCounts] = useState({
+    enrollments: 0,
+    applications: 0,
+    managerRequests: 0,
+    courseRequests: 0
+  });
 
   useEffect(() => {
     fetchData();
@@ -20,17 +41,33 @@ const ManagerDashboard = () => {
 
   const fetchData = async () => {
     try {
-      const [appsRes, enrollmentsRes, statsRes, settingsRes] = await Promise.all([
+      const [appsRes, enrollmentsRes, statsRes, settingsRes, requestsRes, courseRequestsRes] = await Promise.all([
         axios.get('/api/manager/applications'),
         axios.get('/api/manager/enrollments'),
         axios.get('/api/manager/stats'),
-        axios.get('/api/manager/notification-settings')
+        axios.get('/api/manager/notification-settings'),
+        axios.get('/api/manager-requests').catch(() => ({ data: [] })),
+        axios.get('/api/course-requests').catch(() => ({ data: [] }))
       ]);
       
       setApplications(appsRes.data);
       setEnrollments(enrollmentsRes.data);
       setStats(statsRes.data);
       setNotificationSettings(settingsRes.data);
+      
+      // Calculate pending counts
+      const pendingEnrollments = enrollmentsRes.data.filter(e => e.status === 'pending').length;
+      const pendingApplications = appsRes.data.filter(a => a.status === 'pending').length;
+      const pendingRequests = (requestsRes.data || []).filter(r => r.status === 'pending').length;
+      const courseRequestsList = courseRequestsRes.data?.courseRequests || [];
+      const pendingCourseRequests = courseRequestsList.filter(r => r.status === 'pending').length;
+      
+      setPendingCounts({
+        enrollments: pendingEnrollments,
+        applications: pendingApplications,
+        managerRequests: pendingRequests,
+        courseRequests: pendingCourseRequests
+      });
     } catch (error) {
       console.error('Error fetching data:', error);
     } finally {
@@ -179,76 +216,106 @@ const ManagerDashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900">Manager Dashboard</h1>
           <div className="flex gap-3 flex-wrap">
-            <Link
-              to="/manager/add-course"
-              className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 transform hover:scale-105 text-sm"
-            >
-              ➕ Add Course
-            </Link>
-            <Link
-              to="/manager/courses"
-              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 transform hover:scale-105 text-sm"
-            >
-              📚 Manage Courses
-            </Link>
-            <Link
-              to="/manager/add-internship"
-              className="px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold rounded-lg hover:from-green-700 hover:to-teal-700 transition-all duration-300 transform hover:scale-105 text-sm"
-            >
-              ➕ Add Internship
-            </Link>
-            <Link
-              to="/manager/internships"
-              className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 text-sm"
-            >
-              💼 Manage Internships
-            </Link>
-            <Link
-              to="/manager/manage-instructors"
-              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 text-sm"
-            >
-              👨‍🏫 Manage Instructors
-            </Link>
-            <Link
-              to="/manager/requests"
-              className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105"
-            >
-              👥 Manager Requests
-            </Link>
-            <Link
-              to="/manager/manage-managers"
-              className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105"
-            >
-              ⚙️ Manage Managers
-            </Link>
-            <Link
-              to="/manager/manage-candidates"
-              className="px-6 py-2 bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold rounded-lg hover:from-teal-700 hover:to-green-700 transition-all duration-300 transform hover:scale-105"
-            >
-              👤 Manage Candidates
-            </Link>
-            <Link
-              to="/manager/enrollments"
-              className="px-6 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white font-semibold rounded-lg hover:from-orange-700 hover:to-red-700 transition-all duration-300 transform hover:scale-105"
-            >
-              📝 Course Enrollments
-            </Link>
-            <Link
-              to="/manager/applications"
-              className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105"
-            >
-              💼 Internship Applications
-            </Link>
-            <button
-              onClick={handleToggleNotifications}
-              className={`px-4 py-2 rounded-md font-medium transition ${
-                notificationSettings?.emailNotifications
-                  ? 'bg-green-600 text-white hover:bg-green-700'
-                  : 'bg-gray-400 text-white hover:bg-gray-500'
-              }`}
-            >
-              {notificationSettings?.emailNotifications ? '🔔 Notifications ON' : '🔕 Notifications OFF'}
-            </button>
+            <PermissionGuard permission="canManageCourses">
+              <Link
+                to="/manager/add-course"
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-cyan-700 transition-all duration-300 transform hover:scale-105 text-sm"
+              >
+                ➕ Add Course
+              </Link>
+              <Link
+                to="/manager/courses"
+                className="px-4 py-2 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all duration-300 transform hover:scale-105 text-sm"
+              >
+                📚 Manage Courses
+              </Link>
+            </PermissionGuard>
+            
+            <PermissionGuard permission="canManageInternships">
+              <Link
+                to="/manager/add-internship"
+                className="px-4 py-2 bg-gradient-to-r from-green-600 to-teal-600 text-white font-semibold rounded-lg hover:from-green-700 hover:to-teal-700 transition-all duration-300 transform hover:scale-105 text-sm"
+              >
+                ➕ Add Internship
+              </Link>
+              <Link
+                to="/manager/internships"
+                className="px-4 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-teal-600 transition-all duration-300 transform hover:scale-105 text-sm"
+              >
+                💼 Manage Internships
+              </Link>
+            </PermissionGuard>
+            
+            <PermissionGuard permission="canManageCourses">
+              <Link
+                to="/manager/instructors"
+                className="px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-semibold rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all duration-300 transform hover:scale-105 text-sm"
+              >
+                👨‍🏫 Manage Instructors
+              </Link>
+            </PermissionGuard>
+            
+            <PermissionGuard permission="fullAccess">
+              <Link
+                to="/manager/requests"
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 relative"
+              >
+                👥 Manager Requests
+                <Badge count={pendingCounts.managerRequests} />
+              </Link>
+              <Link
+                to="/manager/manage-managers"
+                className="px-6 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-300 transform hover:scale-105"
+              >
+                ⚙️ Manage Managers
+              </Link>
+              <Link
+                to="/manager/manage-candidates"
+                className="px-6 py-2 bg-gradient-to-r from-teal-600 to-green-600 text-white font-semibold rounded-lg hover:from-teal-700 hover:to-green-700 transition-all duration-300 transform hover:scale-105"
+              >
+                👤 Manage Candidates
+              </Link>
+              <Link
+                to="/manager/course-requests"
+                className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-semibold rounded-lg hover:from-cyan-700 hover:to-blue-700 transition-all duration-300 transform hover:scale-105 relative"
+              >
+                📋 Course Requests
+                <Badge count={pendingCounts.courseRequests} />
+              </Link>
+            </PermissionGuard>
+            
+            <PermissionGuard permission="canManageCourses">
+              <Link
+                to="/manager/enrollments"
+                className="px-6 py-2 bg-gradient-to-r from-orange-600 to-red-600 text-white font-semibold rounded-lg hover:from-orange-700 hover:to-red-700 transition-all duration-300 transform hover:scale-105 relative"
+              >
+                📝 Course Enrollments
+                <Badge count={pendingCounts.enrollments} />
+              </Link>
+            </PermissionGuard>
+            
+            <PermissionGuard permission="canViewAllApplications">
+              <Link
+                to="/manager/applications"
+                className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-semibold rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105 relative"
+              >
+                💼 Internship Applications
+                <Badge count={pendingCounts.applications} />
+              </Link>
+            </PermissionGuard>
+            
+            <PermissionGuard permission="canManageNotifications">
+              <button
+                onClick={handleToggleNotifications}
+                className={`px-4 py-2 rounded-md font-medium transition ${
+                  notificationSettings?.emailNotifications
+                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    : 'bg-gray-400 text-white hover:bg-gray-500'
+                }`}
+              >
+                {notificationSettings?.emailNotifications ? '🔔 Notifications ON' : '🔕 Notifications OFF'}
+              </button>
+            </PermissionGuard>
           </div>
         </div>
 
@@ -434,7 +501,7 @@ const ManagerDashboard = () => {
                       {item.status === 'pending' && (
                         <div className="flex space-x-2">
                           {item.itemType === 'application' ? (
-                            <>
+                            <PermissionGuard permission="canApproveApplications">
                               <button
                                 onClick={() => handleUpdateStatus(item._id, 'accepted', 'Application accepted')}
                                 className="text-green-600 hover:text-green-900"
@@ -447,9 +514,9 @@ const ManagerDashboard = () => {
                               >
                                 ✗ Reject
                               </button>
-                            </>
+                            </PermissionGuard>
                           ) : (
-                            <>
+                            <PermissionGuard permission="canManageCourses">
                               <button
                                 onClick={() => handleAcceptEnrollment(item._id)}
                                 className="text-green-600 hover:text-green-900"
@@ -462,17 +529,19 @@ const ManagerDashboard = () => {
                               >
                                 ✗ Reject
                               </button>
-                            </>
+                            </PermissionGuard>
                           )}
                         </div>
                       )}
                       {item.status === 'accepted' && item.itemType === 'enrollment' && (
-                        <button
-                          onClick={() => handleUnenrollCandidate(item._id)}
-                          className="text-orange-600 hover:text-orange-900 font-medium"
-                        >
-                          🚫 Unenroll
-                        </button>
+                        <PermissionGuard permission="canManageCourses">
+                          <button
+                            onClick={() => handleUnenrollCandidate(item._id)}
+                            className="text-orange-600 hover:text-orange-900 font-medium"
+                          >
+                            🚫 Unenroll
+                          </button>
+                        </PermissionGuard>
                       )}
                       {item.status !== 'pending' && !(item.status === 'accepted' && item.itemType === 'enrollment') && (
                         <span className="text-gray-400">No actions</span>

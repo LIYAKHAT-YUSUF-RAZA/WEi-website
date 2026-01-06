@@ -54,7 +54,6 @@ const updateManagerPermissions = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Update permissions error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -83,13 +82,35 @@ const deleteManager = async (req, res) => {
       return res.status(400).json({ message: 'User is not a manager' });
     }
 
+    const managerName = manager.name;
+    const managerEmail = manager.email;
+
+    // Delete all related data for this manager
+    const NotificationSettings = require('../models/NotificationSettings');
+    const deletedNotifications = await NotificationSettings.deleteMany({ userId: manager._id });
+
+    const ManagerRequest = require('../models/ManagerRequest');
+    const updatedRequests = await ManagerRequest.updateMany(
+      { approvedBy: manager._id },
+      { $unset: { approvedBy: 1 } }
+    );
+
+    // Delete the manager user
     await manager.deleteOne();
 
     res.json({ 
-      message: `Manager account for ${manager.name} has been deleted successfully` 
+      message: `Manager ${managerName} and all their data have been deleted successfully`,
+      deletedManager: {
+        name: managerName,
+        email: managerEmail
+      },
+      deletedData: {
+        notificationSettings: deletedNotifications.deletedCount,
+        clearedManagerRequests: updatedRequests.modifiedCount
+      }
     });
   } catch (error) {
-    console.error('Delete manager error:', error);
+    console.error('❌ Delete manager error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -99,18 +120,25 @@ const deleteManager = async (req, res) => {
 // @access  Private (Manager only)
 const getManagerById = async (req, res) => {
   try {
+    console.log('🔍 Getting manager by ID:', req.params.id);
+    console.log('👤 Requesting user:', req.user?.email, 'Role:', req.user?.role);
+    
     const manager = await User.findById(req.params.id).select('-password');
     
     if (!manager) {
+      console.log('❌ Manager not found');
       return res.status(404).json({ message: 'Manager not found' });
     }
 
     if (manager.role !== 'manager') {
+      console.log('❌ User is not a manager, role:', manager.role);
       return res.status(400).json({ message: 'User is not a manager' });
     }
 
+    console.log('✅ Manager found:', manager.email);
     res.json(manager);
   } catch (error) {
+    console.error('❌ Error in getManagerById:', error);
     res.status(500).json({ message: error.message });
   }
 };

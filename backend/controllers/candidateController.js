@@ -50,27 +50,57 @@ const getCandidateById = async (req, res) => {
 // @access  Private (Manager only)
 const deleteCandidate = async (req, res) => {
   try {
+    console.log('🗑️ Deleting candidate:', req.params.id);
+    
     const candidate = await User.findById(req.params.id);
 
     if (!candidate || candidate.role !== 'candidate') {
       return res.status(404).json({ message: 'Candidate not found' });
     }
 
-    // Delete all applications for this candidate
-    await Application.deleteMany({ userId: candidate._id });
+    const candidateName = candidate.name;
+    const candidateEmail = candidate.email;
 
-    // Delete the candidate
+    // Delete all related data for this candidate
+    console.log('🗑️ Deleting applications...');
+    const deletedApps = await Application.deleteMany({ userId: candidate._id });
+    console.log(`   Deleted ${deletedApps.deletedCount} applications`);
+
+    console.log('🗑️ Deleting course enrollments...');
+    const CourseEnrollment = require('../models/CourseEnrollment');
+    const deletedEnrollments = await CourseEnrollment.deleteMany({ userId: candidate._id });
+    console.log(`   Deleted ${deletedEnrollments.deletedCount} enrollments`);
+
+    console.log('🗑️ Deleting cart items...');
+    const Cart = require('../models/Cart');
+    const deletedCart = await Cart.deleteMany({ userId: candidate._id });
+    console.log(`   Deleted ${deletedCart.deletedCount} cart items`);
+
+    console.log('🗑️ Deleting notification settings...');
+    const NotificationSettings = require('../models/NotificationSettings');
+    const deletedNotifications = await NotificationSettings.deleteMany({ userId: candidate._id });
+    console.log(`   Deleted ${deletedNotifications.deletedCount} notification settings`);
+
+    // Delete the candidate user
+    console.log('🗑️ Deleting user account...');
     await User.findByIdAndDelete(req.params.id);
+    console.log('✅ Candidate and all related data deleted successfully');
 
     res.json({ 
-      message: 'Candidate and all their applications have been deleted successfully',
+      message: `Candidate ${candidateName} and all their data have been deleted successfully`,
       deletedCandidate: {
-        name: candidate.name,
-        email: candidate.email
+        name: candidateName,
+        email: candidateEmail
+      },
+      deletedData: {
+        applications: deletedApps.deletedCount,
+        enrollments: deletedEnrollments.deletedCount,
+        cartItems: deletedCart.deletedCount,
+        notificationSettings: deletedNotifications.deletedCount
       }
     });
   } catch (error) {
-    console.error('Error deleting candidate:', error);
+    console.error('❌ Error deleting candidate:', error);
     res.status(500).json({ message: 'Failed to delete candidate' });
   }
 };
