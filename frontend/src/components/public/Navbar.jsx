@@ -59,9 +59,16 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-6">
-                <span className="text-gray-600 font-medium hidden sm:block">
-                  Hello, <span className="text-violet-600 font-semibold">{user.name}</span>
-                </span>
+                <Link to={user.role === 'candidate' ? "/candidate/dashboard" : "/"} className="flex items-center gap-2 group">
+                  <img
+                    src={user.profilePicture || `https://ui-avatars.com/api/?name=${user.name}&background=random`}
+                    alt={user.name}
+                    className="w-8 h-8 rounded-full border border-gray-200 group-hover:border-violet-400 transition-colors object-cover"
+                  />
+                  <span className="text-gray-700 font-medium hidden sm:block group-hover:text-violet-600 transition-colors">
+                    {user.name.split(' ')[0]}
+                  </span>
+                </Link>
 
                 {user.role === 'candidate' && (
                   <>

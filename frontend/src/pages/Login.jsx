@@ -37,8 +37,8 @@ const Login = () => {
       }
 
       if (user.role === 'candidate') {
-        // Redirect to the previous page or default to dashboard
-        navigate(redirectTo || '/candidate/dashboard');
+        // Redirect to the previous page or default to home page
+        navigate(redirectTo || '/');
       } else if (user.role === 'manager') {
         navigate('/manager/dashboard');
       } else if (user.role === 'service_provider') {
