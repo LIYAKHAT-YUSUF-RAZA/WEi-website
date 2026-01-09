@@ -7,7 +7,8 @@ const getServices = async (req, res) => {
     try {
         const services = await Service.find({ status: 'active' })
             .populate('provider', 'name rating reviewsCount profilePicture')
-            .sort({ createdAt: -1 });
+            .sort({ createdAt: -1 })
+            .lean();
         res.json(services);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -20,7 +21,8 @@ const getServices = async (req, res) => {
 const getServiceById = async (req, res) => {
     try {
         const service = await Service.findById(req.params.id)
-            .populate('provider', 'name email phone secondaryPhone address experience problemsSolved rating reviewsCount profilePicture bio');
+            .populate('provider', 'name email phone secondaryPhone address experience problemsSolved rating reviewsCount profilePicture bio')
+            .lean();
         if (!service) {
             return res.status(404).json({ message: 'Service not found' });
         }
@@ -107,7 +109,9 @@ const deleteService = async (req, res) => {
 // @access  Private (Service Provider)
 const getMyServices = async (req, res) => {
     try {
-        const services = await Service.find({ provider: req.user._id }).sort({ createdAt: -1 });
+        const services = await Service.find({ provider: req.user._id })
+            .sort({ createdAt: -1 })
+            .lean();
         res.json(services);
     } catch (error) {
         res.status(500).json({ message: error.message });

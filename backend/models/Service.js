@@ -38,7 +38,8 @@ const serviceSchema = new mongoose.Schema({
     provider: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: true,
+        index: true
     },
     price: {
         type: Number,
@@ -50,27 +51,24 @@ const serviceSchema = new mongoose.Schema({
     },
     location: {
         type: String,
-        trim: true
+        trim: true,
+        index: true
     },
     status: {
         type: String,
         enum: ['active', 'inactive'],
-        default: 'active'
+        default: 'active',
+        index: true
     },
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        index: true
     },
     updatedAt: {
         type: Date,
         default: Date.now
     }
 });
-
-// Update timestamp on save
-// serviceSchema.pre('save', function (next) {
-//     this.updatedAt = Date.now();
-//     next();
-// });
 
 module.exports = mongoose.model('Service', serviceSchema);
