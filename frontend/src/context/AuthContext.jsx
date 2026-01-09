@@ -18,12 +18,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
-    
+
     if (token && userData) {
       const parsedUser = JSON.parse(userData);
       setUser(parsedUser);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
+
       // If permissions are missing, fetch them from the server
       if (!parsedUser.permissions) {
         axios.get('/api/auth/profile')
@@ -36,16 +36,35 @@ export const AuthProvider = ({ children }) => {
       }
     }
     setLoading(false);
+
+
+    // Add interceptor to handle 401s (token expiration/server reset)
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          delete axios.defaults.headers.common['Authorization'];
+          setUser(null);
+        }
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
   }, []);
 
   const login = async (email, password) => {
     const response = await axios.post('/api/auth/login', { email, password });
     const { token, ...userData } = response.data;
-    
+
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    
+
     setUser(userData);
     return userData;
   };
@@ -53,11 +72,11 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     const response = await axios.post('/api/auth/register', userData);
     const { token, ...user } = response.data;
-    
+
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    
+
     setUser(user);
     return user;
   };

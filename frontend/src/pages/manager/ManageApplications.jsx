@@ -41,12 +41,12 @@ const ManageApplications = () => {
 
   const handleAccept = async (applicationId) => {
     try {
-      
-      const response = await axios.put(`/api/manager/applications/${applicationId}`, { 
+
+      const response = await axios.put(`/api/manager/applications/${applicationId}`, {
         status: 'accepted',
-        message 
+        message
       });
-      
+
       console.log('Accept response:', response.data);
       alert('Application accepted successfully! Email sent to candidate.');
       setSelectedApplication(null);
@@ -66,9 +66,9 @@ const ManageApplications = () => {
       return;
     }
     try {
-      await axios.put(`/api/manager/applications/${applicationId}`, { 
+      await axios.put(`/api/manager/applications/${applicationId}`, {
         status: 'rejected',
-        message 
+        message
       });
       alert('Application rejected. Email sent to candidate.');
       setSelectedApplication(null);
@@ -104,7 +104,7 @@ const ManageApplications = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 pt-32">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -165,11 +165,10 @@ const ManageApplications = () => {
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg font-semibold transition ${
-                  filter === status
+                className={`px-4 py-2 rounded-lg font-semibold transition ${filter === status
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -268,9 +267,9 @@ const ManageApplications = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-gray-700">{doc.name}</span>
                               <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
-                                {doc.type === 'resume' ? 'Resume' : 
-                                 doc.type === 'cover_letter' ? 'Cover Letter' : 
-                                 doc.type === 'certificate' ? 'Certificate' : 'Document'}
+                                {doc.type === 'resume' ? 'Resume' :
+                                  doc.type === 'cover_letter' ? 'Cover Letter' :
+                                    doc.type === 'certificate' ? 'Certificate' : 'Document'}
                               </span>
                             </div>
                             <a

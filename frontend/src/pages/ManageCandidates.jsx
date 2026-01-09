@@ -48,7 +48,7 @@ const ManageCandidates = () => {
       await axios.delete(`http://localhost:5000/api/candidates/${candidateId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       setCandidates(candidates.filter(c => c._id !== candidateId));
       setDeleteConfirm(null);
       setShowDetailsModal(false);
@@ -65,7 +65,7 @@ const ManageCandidates = () => {
         `http://localhost:5000/api/candidates/${candidateId}/applications/${applicationId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
+
       // Refresh candidate details
       fetchCandidateDetails(candidateId);
       alert('Application removed successfully');
@@ -83,7 +83,7 @@ const ManageCandidates = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-purple-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-purple-50 py-12 pt-32 px-4">
       <div className="max-w-7xl mx-auto">
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-600 to-purple-600 bg-clip-text text-transparent mb-2">
@@ -221,11 +221,10 @@ const ManageCandidates = () => {
                             </h5>
                             <div className="flex gap-4 mt-1 text-sm text-gray-600">
                               <span>Type: {app.type}</span>
-                              <span>Status: <span className={`font-medium ${
-                                app.status === 'approved' ? 'text-green-600' :
-                                app.status === 'rejected' ? 'text-red-600' :
-                                'text-yellow-600'
-                              }`}>{app.status}</span></span>
+                              <span>Status: <span className={`font-medium ${app.status === 'approved' ? 'text-green-600' :
+                                  app.status === 'rejected' ? 'text-red-600' :
+                                    'text-yellow-600'
+                                }`}>{app.status}</span></span>
                               <span>Applied: {new Date(app.appliedAt).toLocaleDateString()}</span>
                             </div>
                           </div>

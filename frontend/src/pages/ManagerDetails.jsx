@@ -72,7 +72,7 @@ const ManagerDetails = () => {
       await axios.put(`/api/managers/${id}/permissions`, {
         permissions
       });
-      
+
       setMessage({ type: 'success', text: 'Permissions updated successfully!' });
       setShowEditModal(false);
       fetchManagerDetails();
@@ -130,8 +130,8 @@ const ManagerDetails = () => {
     <PermissionGuard permission="fullAccess">
       <div className="min-h-screen bg-gray-50">
         <Navbar />
-        
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
           {/* Header */}
           <div className="mb-8">
             <button
@@ -146,11 +146,10 @@ const ManagerDetails = () => {
 
           {/* Message */}
           {message.text && (
-            <div className={`mb-6 p-4 rounded ${
-              message.type === 'success' 
-                ? 'bg-green-100 text-green-700' 
+            <div className={`mb-6 p-4 rounded ${message.type === 'success'
+                ? 'bg-green-100 text-green-700'
                 : 'bg-red-100 text-red-700'
-            }`}>
+              }`}>
               {message.text}
             </div>
           )}
@@ -158,30 +157,30 @@ const ManagerDetails = () => {
           {/* Manager Information */}
           <div className="bg-white rounded-lg shadow-md p-6 mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-6">Manager Information</h2>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
                 <p className="text-gray-900 font-semibold">{manager.name}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
                 <p className="text-gray-900 font-semibold">{manager.email}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
                 <p className="text-gray-900 font-semibold">{manager.phone || 'Not provided'}</p>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                 <span className="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
                   Active
                 </span>
               </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
                 <p className="text-gray-900 font-semibold">

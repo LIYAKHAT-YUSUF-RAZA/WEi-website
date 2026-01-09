@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Navbar from '../components/public/Navbar.jsx';
 import Footer from '../components/public/Footer.jsx';
 
 const InternshipDetails = () => {
@@ -72,7 +71,7 @@ const InternshipDetails = () => {
       }
       setResumeFile(file);
       setMessage({ type: '', text: '' });
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setApplicationData({
@@ -93,7 +92,7 @@ const InternshipDetails = () => {
       }
       setCoverLetterFile(file);
       setMessage({ type: '', text: '' });
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setApplicationData({
@@ -107,7 +106,7 @@ const InternshipDetails = () => {
 
   const handleApply = async (e) => {
     e.preventDefault();
-    
+
     const finalResumeUrl = applicationData.resume || applicationData.resumeUrl;
     if (!finalResumeUrl) {
       setMessage({ type: 'error', text: 'Please provide your resume (upload file or paste URL)' });
@@ -137,13 +136,13 @@ const InternshipDetails = () => {
         candidateDetails: applicationData,
         documents
       });
-      
+
       setMessage({ type: 'success', text: 'Successfully applied for the internship!' });
       setTimeout(() => navigate('/application-history'), 2000);
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Application failed. Please try again.' 
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Application failed. Please try again.'
       });
     } finally {
       setApplying(false);
@@ -220,8 +219,7 @@ const InternshipDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
+      <div className="min-h-screen bg-gray-50 pt-24">
         <div className="flex items-center justify-center h-96">
           <div className="text-xl">Loading...</div>
         </div>
@@ -231,8 +229,7 @@ const InternshipDetails = () => {
 
   if (!internship) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
+      <div className="min-h-screen bg-gray-50 pt-24">
         <div className="flex items-center justify-center h-96">
           <div className="text-xl text-red-600">Internship not found</div>
         </div>
@@ -241,9 +238,7 @@ const InternshipDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
+    <div className="min-h-screen bg-gray-50 pt-24">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
@@ -251,38 +246,36 @@ const InternshipDetails = () => {
             {/* Internship Image */}
             {internship.image && (
               <div className="mb-6">
-                <img 
-                  src={internship.image} 
-                  alt={internship.title} 
+                <img
+                  src={internship.image}
+                  alt={internship.title}
                   className="w-full h-64 object-cover rounded-lg shadow-lg"
                 />
               </div>
             )}
-            
+
             <div className="bg-white rounded-lg shadow-lg p-8 mb-6">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h1 className="text-3xl font-bold mb-2">{internship.title}</h1>
                   <p className="text-gray-600">{internship.department}</p>
                 </div>
-                <span className={`px-3 py-1 rounded text-sm font-medium ${
-                  internship.type === 'Remote' 
-                    ? 'bg-green-100 text-green-800' 
+                <span className={`px-3 py-1 rounded text-sm font-medium ${internship.type === 'Remote'
+                    ? 'bg-green-100 text-green-800'
                     : internship.type === 'On-site'
-                    ? 'bg-blue-100 text-blue-800'
-                    : 'bg-purple-100 text-purple-800'
-                }`}>
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-purple-100 text-purple-800'
+                  }`}>
                   {internship.type}
                 </span>
               </div>
 
               {/* Message */}
               {message.text && (
-                <div className={`mb-6 p-4 rounded ${
-                  message.type === 'success' 
-                    ? 'bg-green-100 text-green-700' 
+                <div className={`mb-6 p-4 rounded ${message.type === 'success'
+                    ? 'bg-green-100 text-green-700'
                     : 'bg-red-100 text-red-700'
-                }`}>
+                  }`}>
                   {message.text}
                 </div>
               )}
@@ -372,7 +365,7 @@ const InternshipDetails = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Resume <span className="text-red-500">*</span>
                   </label>
-                  
+
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Upload File</label>
@@ -388,9 +381,9 @@ const InternshipDetails = () => {
                         </p>
                       )}
                     </div>
-                    
+
                     <div className="text-center text-xs text-gray-500">OR</div>
-                    
+
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Paste URL</label>
                       <input
@@ -413,7 +406,7 @@ const InternshipDetails = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Cover Letter (Optional)
                   </label>
-                  
+
                   <div className="space-y-3">
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Upload File</label>
@@ -429,9 +422,9 @@ const InternshipDetails = () => {
                         </p>
                       )}
                     </div>
-                    
+
                     <div className="text-center text-xs text-gray-500">OR</div>
-                    
+
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Paste URL</label>
                       <input

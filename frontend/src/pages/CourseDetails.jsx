@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Menu, X, ChevronDown, ChevronUp, Heart, Star, Clock, Users, Award, BookOpen } from 'lucide-react';
-import Navbar from '../components/public/Navbar.jsx';
 import Footer from '../components/public/Footer.jsx';
 import { featuredCourses } from '../data/featuredData';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -29,7 +28,7 @@ const CourseDetails = () => {
       try {
         const response = await axios.get(`/api/courses/${id}`);
         const dbCourse = response.data;
-        
+
         // Use database course data directly
         setCourse(dbCourse);
       } catch (error) {
@@ -93,9 +92,9 @@ const CourseDetails = () => {
       });
     } catch (error) {
       console.error('Enrollment error:', error);
-      setMessage({ 
-        type: 'error', 
-        text: 'Failed to proceed to payment. Please try again.' 
+      setMessage({
+        type: 'error',
+        text: 'Failed to proceed to payment. Please try again.'
       });
     } finally {
       setEnrolling(false);
@@ -117,7 +116,7 @@ const CourseDetails = () => {
         </button>
       );
     }
-    
+
     // Check if pending approval
     if (enrollmentStatus === 'pending') {
       return (
@@ -132,7 +131,7 @@ const CourseDetails = () => {
         </button>
       );
     }
-    
+
     // Check if course is in cart
     if (isInCart(id, 'course')) {
       return (
@@ -147,10 +146,10 @@ const CourseDetails = () => {
         </button>
       );
     }
-    
+
     // Default: Show Enroll Now button
     return (
-      <button 
+      <button
         onClick={handleEnroll}
         disabled={enrolling}
         className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-lg transition-all duration-300 disabled:opacity-50 flex items-center gap-2"
@@ -171,18 +170,18 @@ const CourseDetails = () => {
         courseId: id,
         message: requestMessage
       });
-      
-      setMessage({ 
-        type: 'success', 
-        text: 'Course enrollment request submitted successfully! Managers will review your request soon.' 
+
+      setMessage({
+        type: 'success',
+        text: 'Course enrollment request submitted successfully! Managers will review your request soon.'
       });
       setShowRequestModal(false);
       setRequestMessage('');
       setTimeout(() => setMessage({ type: '', text: '' }), 4000);
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to submit course request' 
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to submit course request'
       });
     }
   };
@@ -202,8 +201,7 @@ const CourseDetails = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
+      <div className="min-h-screen bg-gray-50 pt-24">
         <div className="flex items-center justify-center h-96">
           <div className="text-xl">Loading course details...</div>
         </div>
@@ -213,8 +211,7 @@ const CourseDetails = () => {
 
   if (!course) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <Navbar />
+      <div className="min-h-screen bg-gray-50 pt-24">
         <div className="flex items-center justify-center h-96">
           <div className="text-xl text-red-600">Course not found</div>
         </div>
@@ -224,64 +221,22 @@ const CourseDetails = () => {
 
   return (
     <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-blue-50 via-white to-purple-50'}`}>
-      {/* Fixed Navbar */}
-      <nav className={`fixed top-0 w-full shadow-lg z-50 ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-20">
-            {/* Logo */}
-            <div className="flex items-center space-x-3 cursor-pointer" onClick={() => navigate('/candidate/dashboard')}>
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-                W
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                {course.title}
-              </span>
-            </div>
+      {/* Navbar handled globally in App.jsx */}
 
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-6">
-              <a href="#overview" className={`font-medium transition-colors duration-300 ${darkMode ? 'text-gray-300 hover:text-blue-400' : 'text-gray-700 hover:text-blue-600'}`}>Overview</a>
-              <a href="#curriculum" className={`font-medium transition-colors duration-300 ${darkMode ? 'text-gray-300 hover:text-blue-400' : 'text-gray-700 hover:text-blue-600'}`}>Curriculum</a>
-              <a href="#instructor" className={`font-medium transition-colors duration-300 ${darkMode ? 'text-gray-300 hover:text-blue-400' : 'text-gray-700 hover:text-blue-600'}`}>Instructor</a>
-              {getEnrollButton()}
-            </div>
-
-            {/* Mobile Menu Button */}
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden p-2">
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
-          {/* Mobile Menu */}
-          {mobileMenuOpen && (
-            <div className="md:hidden py-4 space-y-2">
-              <a href="#overview" className={`block px-4 py-2 rounded transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-50'}`}>Overview</a>
-              <a href="#curriculum" className={`block px-4 py-2 rounded transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-50'}`}>Curriculum</a>
-              <a href="#instructor" className={`block px-4 py-2 rounded transition-colors ${darkMode ? 'hover:bg-gray-700' : 'hover:bg-blue-50'}`}>Instructor</a>
-              <div className="w-full mt-2">
-                {getEnrollButton()}
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
-
-      {/* Course Overview Section */}
-      <section id="overview" className="pt-32 pb-20">
+      <section id="overview" className="pb-20 pt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Message */}
           {message.text && (
-            <div className={`mb-6 p-4 rounded-lg ${
-              message.type === 'success' 
-                ? 'bg-green-100 text-green-700 border border-green-200' 
+            <div className={`mb-6 p-4 rounded-lg ${message.type === 'success'
+                ? 'bg-green-100 text-green-700 border border-green-200'
                 : 'bg-red-100 text-red-700 border border-red-200'
-            }`}>
+              }`}>
               {message.text}
             </div>
           )}
 
           <div className="flex flex-col lg:flex-row items-start gap-12">
-              {/* Course Image */}
+            {/* Course Image */}
             <div className="w-full lg:w-1/2 flex flex-col items-center justify-center">
               {course.thumbnail || course.image ? (
                 <img
@@ -292,7 +247,7 @@ const CourseDetails = () => {
               ) : (
                 <div className="w-full max-w-md h-96 bg-gradient-to-br from-blue-400 to-purple-500 rounded-2xl"></div>
               )}
-              
+
               {/* Course Price */}
               {course.originalPrice > 0 && course.price >= 0 ? (
                 <div className="mt-6 flex flex-col items-center">
@@ -315,12 +270,14 @@ const CourseDetails = () => {
                   <span className="text-4xl font-bold text-green-600">Free</span>
                 </div>
               )}
-            </div>            {/* Description */}
+            </div>
+
+            {/* Description */}
             <div className="w-full lg:w-1/2 space-y-6">
               <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 {course.title}
               </h1>
-              
+
               <p className={`text-lg leading-relaxed ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>
                 {course.description}
               </p>
@@ -336,7 +293,7 @@ const CourseDetails = () => {
                     <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{course.duration}</p>
                   </div>
                 )}
-                
+
                 {(course.enrolled !== undefined || course.maxStudents) && (
                   <div className={`p-4 rounded-lg shadow-md ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
                     <div className="flex items-center gap-2 mb-1">
@@ -348,7 +305,7 @@ const CourseDetails = () => {
                     </p>
                   </div>
                 )}
-                
+
                 {course.level && (
                   <div className={`p-4 rounded-lg shadow-md ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
                     <div className="flex items-center gap-2 mb-1">
@@ -358,7 +315,7 @@ const CourseDetails = () => {
                     <p className={`text-2xl font-bold ${darkMode ? 'text-white' : 'text-gray-900'}`}>{course.level}</p>
                   </div>
                 )}
-                
+
                 {course.category && (
                   <div className={`p-4 rounded-lg shadow-md ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
                     <div className="flex items-center gap-2 mb-1">
@@ -372,20 +329,20 @@ const CourseDetails = () => {
 
               {/* Call to Action */}
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button 
+                <button
                   onClick={handleEnroll}
                   disabled={enrolling}
                   className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50"
                 >
                   {enrolling ? 'Enrolling...' : 'Start Learning Now'}
                 </button>
-                <button 
+                <button
                   onClick={() => setShowRequestModal(true)}
                   className="flex-1 px-8 py-4 border-2 border-purple-600 text-purple-600 rounded-lg font-semibold transition-all duration-300 hover:bg-purple-50"
                 >
-                  📋 Request Enrollment
+                  Request Enrollment
                 </button>
-                <button 
+                <button
                   onClick={() => navigate('/courses')}
                   className={`flex-1 px-8 py-4 border-2 border-blue-600 text-blue-600 rounded-lg font-semibold transition-all duration-300 ${darkMode ? 'hover:bg-gray-800' : 'hover:bg-blue-50'}`}
                 >
@@ -432,7 +389,7 @@ const CourseDetails = () => {
                 Comprehensive modules designed to take you from beginner to expert
               </p>
             </div>
-            
+
             <div className="space-y-4">
               {course.curriculum.map((module, index) => (
                 <div key={index} className={`rounded-xl overflow-hidden ${darkMode ? 'bg-gray-900' : 'bg-gray-50'} shadow-md hover:shadow-lg transition-all duration-300`}>
@@ -461,7 +418,7 @@ const CourseDetails = () => {
                       <ChevronDown className={`w-6 h-6 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`} />
                     )}
                   </button>
-                  
+
                   {expandedModule === index && module.topics && (
                     <div className={`px-6 pb-6 ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
                       <ul className="space-y-3 ml-16">
@@ -517,8 +474,8 @@ const CourseDetails = () => {
               <div className="flex flex-col md:flex-row items-start gap-8">
                 <div className="flex-shrink-0">
                   {course.instructor.image ? (
-                    <img 
-                      src={course.instructor.image} 
+                    <img
+                      src={course.instructor.image}
                       alt={course.instructor.name}
                       className="w-32 h-32 rounded-full object-cover shadow-lg"
                     />
@@ -534,7 +491,7 @@ const CourseDetails = () => {
                   <h3 className={`text-3xl font-bold mb-2 ${darkMode ? 'text-white' : 'text-gray-900'}`}>
                     {course.instructor.name}
                   </h3>
-                  
+
                   {/* Experience and Rating */}
                   <div className="flex flex-wrap items-center gap-4 mb-4">
                     {course.instructor.experience && (
@@ -547,18 +504,17 @@ const CourseDetails = () => {
                         </span>
                       </div>
                     )}
-                    
+
                     {course.instructor.rating > 0 && (
                       <div className="flex items-center gap-2">
                         <div className="flex items-center">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <svg
                               key={star}
-                              className={`w-5 h-5 ${
-                                star <= Math.round(course.instructor.rating)
+                              className={`w-5 h-5 ${star <= Math.round(course.instructor.rating)
                                   ? 'text-yellow-400'
                                   : 'text-gray-300'
-                              }`}
+                                }`}
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -572,7 +528,7 @@ const CourseDetails = () => {
                       </div>
                     )}
                   </div>
-                  
+
                   {course.instructor.designation && (
                     <p className={`text-xl mb-3 ${darkMode ? 'text-blue-400' : 'text-blue-600'}`}>
                       {course.instructor.designation}
@@ -583,7 +539,7 @@ const CourseDetails = () => {
                       {course.instructor.bio}
                     </p>
                   )}
-                  
+
                   {/* View Instructor Details Button */}
                   <button
                     onClick={() => navigate(`/instructor/${course._id}`)}
@@ -616,7 +572,7 @@ const CourseDetails = () => {
                 </p>
               </div>
             )}
-            
+
             {course.support && (
               <div className={`p-8 rounded-2xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-xl text-center`}>
                 <Users className="w-16 h-16 mx-auto mb-4 text-blue-500" />
@@ -628,7 +584,7 @@ const CourseDetails = () => {
                 </p>
               </div>
             )}
-            
+
             {course.projectsIncluded && (
               <div className={`p-8 rounded-2xl ${darkMode ? 'bg-gray-800' : 'bg-white'} shadow-xl text-center`}>
                 <BookOpen className="w-16 h-16 mx-auto mb-4 text-purple-500" />
@@ -645,55 +601,14 @@ const CourseDetails = () => {
       </section>
 
       {/* Footer */}
-      <footer className={`py-12 ${darkMode ? 'bg-gray-800 border-t border-gray-700' : 'bg-white border-t border-gray-200'}`}>
-        <div className="container mx-auto px-6 max-w-7xl">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h4 className={`text-lg font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Quick Links</h4>
-              <ul className="space-y-2">
-                <li><a href="#overview" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Overview</a></li>
-                <li><a href="#curriculum" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Curriculum</a></li>
-                <li><a href="#instructor" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Instructor</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className={`text-lg font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Support</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Help Center</a></li>
-                <li><a href="#" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Contact Us</a></li>
-                <li><a href="#" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>FAQs</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className={`text-lg font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Legal</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Terms of Service</a></li>
-                <li><a href="#" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Privacy Policy</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className={`text-lg font-bold mb-4 ${darkMode ? 'text-white' : 'text-gray-900'}`}>Connect</h4>
-              <ul className="space-y-2">
-                <li><a href="#" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>LinkedIn</a></li>
-                <li><a href="#" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Twitter</a></li>
-                <li><a href="#" className={`${darkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-600 hover:text-blue-600'} transition-colors`}>Facebook</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className={`mt-8 pt-8 border-t ${darkMode ? 'border-gray-700' : 'border-gray-200'} text-center`}>
-            <p className={`${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              © {new Date().getFullYear()} WEintegrity. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      <Footer />
 
       {/* Course Request Modal */}
       {showRequestModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
             <div className="p-6 border-b border-gray-200">
-              <h3 className="text-xl font-bold text-gray-900">📋 Request Course Enrollment</h3>
+              <h3 className="text-xl font-bold text-gray-900">Request Course Enrollment</h3>
               <p className="text-sm text-gray-600 mt-1">{course?.title}</p>
             </div>
 

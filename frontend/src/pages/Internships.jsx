@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowLeft, Search, MapPin, Clock, DollarSign, Briefcase, Building } from 'lucide-react';
+import { Search, MapPin, Clock, DollarSign, Briefcase, Building, Filter, X, CheckCircle, Globe, ArrowRight } from 'lucide-react';
 
 const Internships = () => {
   const [internships, setInternships] = useState([]);
@@ -20,7 +20,15 @@ const Internships = () => {
   const fetchInternships = async () => {
     try {
       const response = await axios.get('/api/internships');
-      setInternships(response.data);
+      let internshipData = [];
+      if (response.data && Array.isArray(response.data)) {
+        internshipData = response.data;
+      } else if (response.data && response.data.internships && Array.isArray(response.data.internships)) {
+        internshipData = response.data.internships;
+      } else if (response.data && response.data.data && Array.isArray(response.data.data)) {
+        internshipData = response.data.data;
+      }
+      setInternships(internshipData);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching internships:', error);
@@ -42,61 +50,33 @@ const Internships = () => {
     }
   };
 
-  // Get unique types and locations for filters
   const types = ['all', ...new Set(internships.map(i => i.type).filter(Boolean))];
   const locations = ['all', ...new Set(internships.map(i => i.location).filter(Boolean))];
 
-  // Filter internships
   const filteredInternships = internships.filter(internship => {
     const matchesSearch = internship.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         internship.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         internship.company?.toLowerCase().includes(searchQuery.toLowerCase());
+      internship.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      internship.company?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedType === 'all' || internship.type === selectedType;
     const matchesLocation = selectedLocation === 'all' || internship.location === selectedLocation;
-    
+
     return matchesSearch && matchesType && matchesLocation;
   });
 
   const getStatusButton = (internshipId, status) => {
-    if (status === 'accepted') {
-      return (
-        <button
-          onClick={() => navigate(`/internships/${internshipId}`)}
-          className="w-full bg-green-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-green-600 transition-all"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-          Application Accepted ✓
-        </button>
-      );
-    }
+    if (status) {
+      const config = {
+        accepted: { color: 'bg-green-100 text-green-700', icon: <CheckCircle className="w-4 h-4" />, text: 'Accepted' },
+        pending: { color: 'bg-yellow-100 text-yellow-700', icon: <Clock className="w-4 h-4" />, text: 'Applied' },
+        rejected: { color: 'bg-red-100 text-red-700', icon: <X className="w-4 h-4" />, text: 'Rejected' },
+      }[status] || { color: 'bg-gray-100 text-gray-700', icon: null, text: status };
 
-    if (status === 'pending') {
       return (
         <button
           onClick={() => navigate(`/internships/${internshipId}`)}
-          className="w-full bg-yellow-500 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:bg-yellow-600 transition-all"
+          className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 cursor-default ${config.color}`}
         >
-          <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          Application Pending...
-        </button>
-      );
-    }
-
-    if (status === 'rejected') {
-      return (
-        <button
-          onClick={() => navigate(`/internships/${internshipId}`)}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-semibold flex items-center justify-center gap-2 hover:from-blue-700 hover:to-purple-700 transition-all shadow-md hover:shadow-lg"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-          Reapply Now
+          {config.icon} {config.text}
         </button>
       );
     }
@@ -104,7 +84,7 @@ const Internships = () => {
     return (
       <button
         onClick={() => navigate(`/internships/${internshipId}`)}
-        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 rounded-lg font-semibold hover:from-purple-700 hover:to-pink-700 transition-all shadow-md hover:shadow-lg"
+        className="flex-1 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-xl font-bold hover:shadow-lg hover:-translate-y-0.5 transition-all text-sm"
       >
         Apply Now
       </button>
@@ -113,203 +93,140 @@ const Internships = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 flex items-center justify-center">
-        <div className="text-xl text-gray-600">Loading internships...</div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin-slow rounded-full h-16 w-16 border-t-2 border-b-2 border-fuchsia-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-16">
-        <div className="max-w-7xl mx-auto px-6">
-          <button
-            onClick={() => navigate('/candidate/dashboard')}
-            className="flex items-center gap-2 mb-6 hover:text-purple-200 transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            Back to Dashboard
-          </button>
-          <h1 className="text-5xl font-bold mb-4">Internship Opportunities</h1>
-          <p className="text-xl text-purple-100">Launch your career with hands-on experience</p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-gray-50 font-body">
 
-      {/* Filters */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+      <div className="pt-24 pb-12 px-6 max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12 animate-fade-in-up">
+          <h1 className="text-4xl md:text-6xl font-heading font-bold mb-4">
+            Find Your Dream <span className="text-transparent bg-clip-text bg-gradient-to-r from-fuchsia-600 to-purple-600">Internship</span>
+          </h1>
+          <p className="text-xl text-gray-500 max-w-2xl mx-auto">
+            Kickstart your career with opportunities from top companies.
+          </p>
+        </div>
+
+        {/* Filters */}
+        <div className="glass-panel p-6 rounded-3xl mb-12 animate-fade-in-up delay-100">
+          <div className="grid md:grid-cols-3 gap-6">
+            <div className="relative col-span-1 md:col-span-3 lg:col-span-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search internships by title, company, or description..."
+                placeholder="Search job titles..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none transition-colors"
+                className="w-full pl-12 pr-4 py-3 bg-gray-50/50 border-none rounded-xl focus:ring-2 focus:ring-fuchsia-200"
               />
             </div>
-          </div>
 
-          {/* Filter Buttons */}
-          <div className="space-y-4">
-            {/* Type Filter */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Type</h3>
-              <div className="flex flex-wrap gap-2">
-                {types.map((type) => (
-                  <button
-                    key={type}
-                    onClick={() => setSelectedType(type)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      selectedType === type
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {type === 'all' ? 'All Types' : type}
-                  </button>
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-3 items-center md:col-span-2">
+              <span className="text-sm font-bold text-gray-400 uppercase tracking-widest mr-2"><Filter className="w-4 h-4 inline mr-1" /> filters:</span>
+              <select
+                className="px-4 py-2 bg-white border border-gray-100 rounded-lg text-sm font-medium focus:ring-2 focus:ring-fuchsia-200 cursor-pointer"
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+              >
+                {types.map(t => <option key={t} value={t}>{t === 'all' ? 'All Types' : t}</option>)}
+              </select>
+
+              <select
+                className="px-4 py-2 bg-white border border-gray-100 rounded-lg text-sm font-medium focus:ring-2 focus:ring-fuchsia-200 cursor-pointer"
+                value={selectedLocation}
+                onChange={(e) => setSelectedLocation(e.target.value)}
+              >
+                {locations.slice(0, 5).map(l => <option key={l} value={l}>{l === 'all' ? 'All Locations' : l}</option>)}
+              </select>
             </div>
-
-            {/* Location Filter */}
-            <div>
-              <h3 className="text-sm font-semibold text-gray-700 mb-2">Location</h3>
-              <div className="flex flex-wrap gap-2">
-                {locations.slice(0, 8).map((location) => (
-                  <button
-                    key={location}
-                    onClick={() => setSelectedLocation(location)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                      selectedLocation === location
-                        ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {location === 'all' ? 'All Locations' : location}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Results Count */}
-          <div className="mt-4 pt-4 border-t border-gray-200">
-            <p className="text-gray-600">
-              Showing <span className="font-semibold text-purple-600">{filteredInternships.length}</span> of{' '}
-              <span className="font-semibold">{internships.length}</span> internships
-            </p>
           </div>
         </div>
 
-        {/* Internships Grid */}
-        {filteredInternships.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-lg p-12 text-center">
-            <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No Internships Found</h3>
-            <p className="text-gray-600">Try adjusting your filters or search query</p>
-          </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredInternships.map((internship) => (
-              <div
-                key={internship._id}
-                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all transform hover:-translate-y-1"
-              >
-                {/* Internship Image */}
-                {internship.image ? (
+        {/* Grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 animate-fade-in-up delay-200">
+          {filteredInternships.length > 0 ? (
+            filteredInternships.map(internship => (
+              <div key={internship._id} className="group glass-card rounded-2xl overflow-hidden hover:shadow-2xl transition-all duration-300 border border-gray-100 flex flex-col h-full transform hover:-translate-y-1 bg-white">
+                {/* Image Header */}
+                <div className="relative h-48 overflow-hidden bg-gray-100">
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors z-10" />
                   <img
-                    src={internship.image}
+                    src={internship.image || 'https://images.unsplash.com/photo-1553877522-43269d4ea984?auto=format&fit=crop&q=80'}
                     alt={internship.title}
-                    className="w-full h-48 object-cover"
+                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                   />
-                ) : (
-                  <div className="w-full h-48 bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                    <Briefcase className="w-16 h-16 text-white opacity-50" />
-                  </div>
-                )}
-
-                <div className="p-6">
-                  {/* Type Badge */}
-                  <div className="mb-3">
-                    <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                      internship.type === 'Remote'
-                        ? 'bg-green-100 text-green-700'
-                        : internship.type === 'On-site'
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-purple-100 text-purple-700'
-                    }`}>
-                      {internship.type || 'Hybrid'}
+                  <div className="absolute top-4 right-4 z-20">
+                    <span className="px-3 py-1 bg-white/95 backdrop-blur text-cyan-700 rounded-lg text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1">
+                      {internship.type === 'Remote' ? <Globe className="w-3 h-3" /> : <MapPin className="w-3 h-3" />}
+                      {internship.type}
                     </span>
                   </div>
+                </div>
 
-                  {/* Title */}
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">{internship.title}</h3>
-
-                  {/* Company/Department */}
-                  {(internship.company || internship.department) && (
-                    <div className="flex items-center gap-2 text-gray-600 mb-3">
-                      <Building className="w-4 h-4" />
-                      <span className="text-sm font-medium">{internship.company || internship.department}</span>
+                <div className="p-6 flex flex-col flex-grow relative">
+                  {/* Company & Title */}
+                  <div className="mb-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-6 h-6 rounded-md bg-cyan-50 flex items-center justify-center text-cyan-600 font-bold text-xs uppercase">
+                        {internship.company?.name?.[0] || 'C'}
+                      </div>
+                      <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{internship.company?.name || 'Top Company'}</span>
                     </div>
-                  )}
+                    <h3 className="text-xl font-bold text-gray-900 font-heading leading-tight group-hover:text-cyan-600 transition-colors line-clamp-2">
+                      {internship.title}
+                    </h3>
+                  </div>
 
-                  {/* Description */}
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{internship.description}</p>
-
-                  {/* Details */}
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center gap-2 text-gray-700 text-sm">
-                      <MapPin className="w-4 h-4 text-purple-600" />
-                      <span>{internship.location}</span>
+                  {/* Meta Grid */}
+                  <div className="grid grid-cols-2 gap-3 mb-5">
+                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
+                      <MapPin className="w-4 h-4 text-cyan-500" />
+                      <span className="truncate">{internship.location}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-gray-700 text-sm">
-                      <Clock className="w-4 h-4 text-purple-600" />
-                      <span>{internship.duration}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-gray-700 text-sm">
-                      <DollarSign className="w-4 h-4 text-purple-600" />
-                      <span className="font-semibold text-green-600">{internship.stipend}</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
+                      <Clock className="w-4 h-4 text-cyan-500" />
+                      <span className="truncate">{internship.duration}</span>
                     </div>
                   </div>
 
-                  {/* Skills */}
-                  {internship.skills && internship.skills.length > 0 && (
-                    <div className="mb-4">
-                      <div className="flex flex-wrap gap-2">
-                        {internship.skills.slice(0, 3).map((skill, idx) => (
-                          <span
-                            key={idx}
-                            className="bg-purple-50 text-purple-700 text-xs px-2 py-1 rounded"
-                          >
-                            {skill}
-                          </span>
-                        ))}
-                        {internship.skills.length > 3 && (
-                          <span className="text-xs text-gray-500">+{internship.skills.length - 3} more</span>
-                        )}
+                  {/* Stipend Section */}
+                  <div className="mt-auto mb-6">
+                    <div className="p-3 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border border-cyan-100 flex justify-between items-center group-hover:border-cyan-200 transition-colors">
+                      <span className="text-xs font-bold text-gray-500 uppercase">Stipend</span>
+                      <div className="flex items-center gap-1 font-bold text-gray-900">
+                        <span className="text-cyan-600"><DollarSign className="w-4 h-4" /></span>
+                        <span className="text-lg">{internship.stipend || 'Unpaid'}</span>
                       </div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* Action Buttons */}
-                  <div className="space-y-2">
-                    {getStatusButton(internship._id, applicationStatuses[internship._id])}
+                  {/* Actions */}
+                  <div className="flex gap-3">
                     <button
                       onClick={() => navigate(`/internships/${internship._id}`)}
-                      className="w-full border-2 border-purple-600 text-purple-600 py-3 rounded-lg font-semibold hover:bg-purple-50 transition-all"
+                      className="px-4 py-3 border-2 border-gray-100 rounded-xl font-bold text-gray-600 hover:border-cyan-600 hover:text-cyan-600 transition-all text-sm flex-1"
                     >
-                      View Full Details
+                      Details
                     </button>
+                    {getStatusButton(internship._id, applicationStatuses[internship._id])}
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
+            ))
+          ) : (
+            <div className="col-span-full text-center py-20">
+              <Briefcase className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-gray-900">No internships found</h3>
+              <p className="text-gray-500">Try changing your filters.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

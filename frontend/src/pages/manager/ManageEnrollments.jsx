@@ -22,13 +22,13 @@ const ManageEnrollments = () => {
       setLoading(true);
       // Always fetch from the main endpoint - it handles all statuses
       const response = await axios.get('/api/manager/enrollments');
-      
+
       // Filter client-side if needed
       let filteredData = response.data;
       if (filter !== 'all') {
         filteredData = response.data.filter(e => e.status === filter);
       }
-      
+
       setEnrollments(filteredData);
     } catch (error) {
       console.error('Error fetching enrollments:', error);
@@ -101,7 +101,7 @@ const ManageEnrollments = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 pt-32">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -156,11 +156,10 @@ const ManageEnrollments = () => {
               <button
                 key={status}
                 onClick={() => setFilter(status)}
-                className={`px-4 py-2 rounded-lg font-semibold transition ${
-                  filter === status
+                className={`px-4 py-2 rounded-lg font-semibold transition ${filter === status
                     ? 'bg-blue-600 text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
+                  }`}
               >
                 {status.charAt(0).toUpperCase() + status.slice(1)}
               </button>
@@ -243,9 +242,9 @@ const ManageEnrollments = () => {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-gray-700">{doc.name}</span>
                               <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
-                                {doc.type === 'payment_receipt' ? 'Payment Receipt' : 
-                                 doc.type === 'screenshot' ? 'Screenshot' : 
-                                 doc.type === 'certificate' ? 'Certificate' : 'Document'}
+                                {doc.type === 'payment_receipt' ? 'Payment Receipt' :
+                                  doc.type === 'screenshot' ? 'Screenshot' :
+                                    doc.type === 'certificate' ? 'Certificate' : 'Document'}
                               </span>
                             </div>
                             <a

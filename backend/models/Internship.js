@@ -57,10 +57,23 @@ const internshipSchema = new mongoose.Schema({
     enum: ['open', 'closed'],
     default: 'open'
   },
+  company: {
+    name: {
+      type: String,
+      default: 'WEintegrity'
+    }
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
+
+// Add indexes for performance
+internshipSchema.index({ title: 'text', description: 'text' });
+internshipSchema.index({ type: 1 });
+internshipSchema.index({ location: 1 });
+internshipSchema.index({ status: 1 });
+internshipSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Internship', internshipSchema);

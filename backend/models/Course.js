@@ -88,4 +88,10 @@ const courseSchema = new mongoose.Schema({
   }
 });
 
+// Add indexes for performance
+courseSchema.index({ title: 'text', category: 'text', description: 'text' });
+courseSchema.index({ category: 1 });
+courseSchema.index({ status: 1 });
+courseSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Course', courseSchema);

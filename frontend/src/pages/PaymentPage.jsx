@@ -34,7 +34,7 @@ const PaymentPage = () => {
       navigate('/login');
       return;
     }
-    
+
     if (!items.length) {
       navigate('/cart');
       return;
@@ -49,9 +49,9 @@ const PaymentPage = () => {
         alert('File size should be less than 5MB');
         return;
       }
-      
+
       setScreenshot(file);
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -121,7 +121,7 @@ const PaymentPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 py-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 pt-24 pb-8">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <button
@@ -152,7 +152,7 @@ const PaymentPage = () => {
                     <p className="font-bold text-blue-600">₹{item.course?.price || 0}</p>
                   </div>
                 ))}
-                
+
                 <div className="pt-4 space-y-2">
                   <div className="flex justify-between text-lg">
                     <span className="font-semibold">Total Amount:</span>
@@ -172,16 +172,15 @@ const PaymentPage = () => {
             {/* Payment Method Selection */}
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-800 mb-4">Select Payment Method</h2>
-              
+
               <div className="space-y-4">
                 {/* UPI Payment */}
                 <div
                   onClick={() => setPaymentMethod('upi')}
-                  className={`p-4 border-2 rounded-lg cursor-pointer transition ${
-                    paymentMethod === 'upi'
+                  className={`p-4 border-2 rounded-lg cursor-pointer transition ${paymentMethod === 'upi'
                       ? 'border-blue-600 bg-blue-50'
                       : 'border-gray-200 hover:border-blue-300'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
                     <Smartphone className={`w-6 h-6 ${paymentMethod === 'upi' ? 'text-blue-600' : 'text-gray-400'}`} />
@@ -210,7 +209,7 @@ const PaymentPage = () => {
             {paymentMethod === 'upi' && (
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-6">Scan QR Code to Pay</h3>
-                
+
                 <div className="space-y-6">
                   {/* QR Code Display */}
                   <div className="text-center">
@@ -244,7 +243,7 @@ const PaymentPage = () => {
                     <label className="block text-sm font-bold text-gray-800 mb-3">
                       Upload Payment Screenshot *
                     </label>
-                    
+
                     {!screenshotPreview ? (
                       <label className="block w-full border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition">
                         <Upload className="w-12 h-12 mx-auto text-gray-400 mb-3" />
@@ -330,7 +329,7 @@ const PaymentPage = () => {
                   <span>24/7 customer support</span>
                 </div>
               </div>
-              
+
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <p className="text-xs text-gray-500 text-center">
                   Powered by WEintegrity

@@ -23,7 +23,7 @@ const getAllApplications = async (req, res) => {
   try {
     const { type, status } = req.query;
     let query = { type: 'internship' }; // Only get internship applications
-    
+
     if (status) query.status = status;
 
     const applications = await Application.find(query)
@@ -53,9 +53,9 @@ const getAllApplications = async (req, res) => {
 // @access  Private (Manager)
 const updateApplicationStatus = async (req, res) => {
   try {
-    
+
     const { status, message } = req.body;
-    
+
     const application = await Application.findById(req.params.id)
       .populate('candidateId', 'name email');
 
@@ -102,11 +102,11 @@ const updateApplicationStatus = async (req, res) => {
 const getNotificationSettings = async (req, res) => {
   try {
     let settings = await NotificationSettings.findOne({ managerId: req.user._id });
-    
+
     if (!settings) {
       settings = await NotificationSettings.create({ managerId: req.user._id });
     }
-    
+
     res.json(settings);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -119,7 +119,7 @@ const getNotificationSettings = async (req, res) => {
 const updateNotificationSettings = async (req, res) => {
   try {
     let settings = await NotificationSettings.findOne({ managerId: req.user._id });
-    
+
     if (!settings) {
       settings = await NotificationSettings.create({
         managerId: req.user._id,
@@ -132,7 +132,7 @@ const updateNotificationSettings = async (req, res) => {
         { new: true }
       );
     }
-    
+
     res.json(settings);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -144,25 +144,27 @@ const updateNotificationSettings = async (req, res) => {
 // @access  Private (Manager)
 const getDashboardStats = async (req, res) => {
   try {
+    // console.log('Fetching dashboard stats...');
+
     // Get Application stats
     const totalApplications = await Application.countDocuments();
     const pendingApplications = await Application.countDocuments({ status: 'pending' });
     const acceptedApplications = await Application.countDocuments({ status: 'accepted' });
     const rejectedApplications = await Application.countDocuments({ status: 'rejected' });
-    
+
     // Get Enrollment stats
     const totalEnrollments = await CourseEnrollment.countDocuments();
     const pendingEnrollments = await CourseEnrollment.countDocuments({ status: 'pending' });
     const paymentPendingEnrollments = await CourseEnrollment.countDocuments({ status: 'payment_pending' });
     const acceptedEnrollments = await CourseEnrollment.countDocuments({ status: 'accepted' });
     const rejectedEnrollments = await CourseEnrollment.countDocuments({ status: 'rejected' });
-    
+
     // Combined stats (Applications + Enrollments)
     const combinedTotal = totalApplications + totalEnrollments;
     const combinedPending = pendingApplications + pendingEnrollments + paymentPendingEnrollments;
     const combinedAccepted = acceptedApplications + acceptedEnrollments;
     const combinedRejected = rejectedApplications + rejectedEnrollments;
-    
+
     const courseApplications = await Application.countDocuments({ type: 'course' });
     const internshipApplications = await Application.countDocuments({ type: 'internship' });
 
@@ -182,7 +184,8 @@ const getDashboardStats = async (req, res) => {
       internships: totalInternships
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Error in getDashboardStats:', error);
+    res.status(500).json({ message: error.message, stack: error.stack });
   }
 };
 
@@ -215,8 +218,8 @@ const createCourse = async (req, res) => {
 
     // Validate required fields
     if (!title || !description || !category || !duration) {
-      return res.status(400).json({ 
-        message: 'Please provide title, description, category, and duration' 
+      return res.status(400).json({
+        message: 'Please provide title, description, category, and duration'
       });
     }
 
@@ -244,9 +247,9 @@ const createCourse = async (req, res) => {
 
     const savedCourse = await course.save();
     console.log('Saved course:', { price: savedCourse.price, originalPrice: savedCourse.originalPrice });
-    res.status(201).json({ 
-      message: 'Course created successfully', 
-      course: savedCourse 
+    res.status(201).json({
+      message: 'Course created successfully',
+      course: savedCourse
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -277,8 +280,8 @@ const createInternship = async (req, res) => {
 
     // Validate required fields
     if (!title || !description || !department || !location || !duration) {
-      return res.status(400).json({ 
-        message: 'Please provide title, description, department, location, and duration' 
+      return res.status(400).json({
+        message: 'Please provide title, description, department, location, and duration'
       });
     }
 
@@ -302,9 +305,9 @@ const createInternship = async (req, res) => {
     });
 
     const savedInternship = await internship.save();
-    res.status(201).json({ 
-      message: 'Internship created successfully', 
-      internship: savedInternship 
+    res.status(201).json({
+      message: 'Internship created successfully',
+      internship: savedInternship
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -341,7 +344,7 @@ const getAllInternships = async (req, res) => {
 const updateCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
-    
+
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
@@ -362,22 +365,22 @@ const updateCourse = async (req, res) => {
       course.instructorDetails = req.body.instructorDetails;
       console.log('Setting manual instructor details:', req.body.instructorDetails);
     }
-    
+
     // Update all other fields (excluding instructor-related fields)
     const { instructor, instructorDetails, instructorName, instructorBio, instructorImage, instructorExperience, instructorRating, ...otherFields } = req.body;
     Object.assign(course, otherFields);
-    
+
     const updatedCourse = await course.save();
-    
+
     // Populate instructor before returning
     await updatedCourse.populate('instructor');
-    
+
     console.log('Updated course after save - instructor:', updatedCourse.instructor);
     console.log('Updated course after save - instructorDetails:', updatedCourse.instructorDetails);
-    
-    res.json({ 
-      message: 'Course updated successfully', 
-      course: updatedCourse 
+
+    res.json({
+      message: 'Course updated successfully',
+      course: updatedCourse
     });
   } catch (error) {
     console.error('Update course error:', error);
@@ -391,17 +394,17 @@ const updateCourse = async (req, res) => {
 const updateInternship = async (req, res) => {
   try {
     const internship = await Internship.findById(req.params.id);
-    
+
     if (!internship) {
       return res.status(404).json({ message: 'Internship not found' });
     }
 
     Object.assign(internship, req.body);
     const updatedInternship = await internship.save();
-    
-    res.json({ 
-      message: 'Internship updated successfully', 
-      internship: updatedInternship 
+
+    res.json({
+      message: 'Internship updated successfully',
+      internship: updatedInternship
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -414,7 +417,7 @@ const updateInternship = async (req, res) => {
 const deleteCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
-    
+
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
@@ -432,7 +435,7 @@ const deleteCourse = async (req, res) => {
 const deleteInternship = async (req, res) => {
   try {
     const internship = await Internship.findById(req.params.id);
-    
+
     if (!internship) {
       return res.status(404).json({ message: 'Internship not found' });
     }

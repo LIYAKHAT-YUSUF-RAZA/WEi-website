@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import Navbar from '../components/public/Navbar.jsx';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -28,20 +27,22 @@ const Login = () => {
 
     try {
       const user = await login(formData.email, formData.password);
-      
+
       // Get the redirect URL from location state or localStorage
       const redirectTo = location.state?.from || localStorage.getItem('redirectAfterLogin');
-      
+
       // Clear the stored redirect URL
       if (redirectTo) {
         localStorage.removeItem('redirectAfterLogin');
       }
-      
+
       if (user.role === 'candidate') {
         // Redirect to the previous page or default to dashboard
         navigate(redirectTo || '/candidate/dashboard');
       } else if (user.role === 'manager') {
         navigate('/manager/dashboard');
+      } else if (user.role === 'service_provider') {
+        navigate('/service-provider/dashboard');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed. Please try again.');
@@ -51,8 +52,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-100 to-pink-100 pt-24">
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
@@ -70,7 +70,7 @@ const Login = () => {
                 <p className="text-sm mt-1">Don't have an account? Please register first!</p>
               </div>
             )}
-            
+
             <div className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -87,7 +87,7 @@ const Login = () => {
                   onChange={handleChange}
                 />
               </div>
-              
+
               <div>
                 <label htmlFor="password" className="block text-sm font-semibold text-gray-700 mb-2">
                   🔒 Password
@@ -103,8 +103,8 @@ const Login = () => {
                   onChange={handleChange}
                 />
                 <div className="text-right mt-2">
-                  <Link 
-                    to="/forgot-password" 
+                  <Link
+                    to="/forgot-password"
                     className="text-sm font-medium text-purple-600 hover:text-blue-600 transition-colors duration-300"
                   >
                     Forgot password?

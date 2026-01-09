@@ -27,72 +27,60 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-lg">
+    <nav className="fixed w-full z-50 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-white/20 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
+        <div className="flex justify-between h-20">
           <div className="flex items-center">
-            <Link to="/" className="text-2xl font-bold text-primary-600">
-              WEintegrity
+            <Link to="/" className="flex items-center gap-2 group">
+              <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg group-hover:shadow-violet-500/30 transition-all duration-300">
+                W
+              </div>
+              <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600 font-heading">
+                WEintegrity
+              </span>
             </Link>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             {!user ? (
-              <>
+              <div className="flex items-center space-x-4">
                 <Link
                   to="/login"
-                  className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+                  className="text-gray-600 hover:text-violet-600 font-medium transition-colors"
                 >
                   Login
                 </Link>
                 <Link
                   to="/register"
-                  className="bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700"
+                  className="bg-gray-900 text-white px-6 py-2.5 rounded-full font-medium hover:bg-gray-800 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
                 >
-                  Register
+                  Get Started
                 </Link>
-              </>
+              </div>
             ) : (
-              <>
-                <span className="text-gray-700">
-                  Hello, {user.name}
+              <div className="flex items-center space-x-6">
+                <span className="text-gray-600 font-medium hidden sm:block">
+                  Hello, <span className="text-violet-600 font-semibold">{user.name}</span>
                 </span>
+
                 {user.role === 'candidate' && (
                   <>
-                    <Link
-                      to="/candidate/dashboard"
-                      className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
-                    >
-                      Dashboard
-                    </Link>
-                    <Link
-                      to="/courses"
-                      className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
-                    >
-                      Courses
-                    </Link>
-                    <Link
-                      to="/internships"
-                      className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
-                    >
-                      Internships
-                    </Link>
-                    <Link
-                      to="/my-applications"
-                      className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
-                    >
-                      My Applications
-                    </Link>
-                    
-                    {/* Cart Icon with Dropdown */}
+                    <div className="hidden md:flex items-center space-x-1">
+                      <Link to="/candidate/dashboard" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Dashboard</Link>
+                      <Link to="/courses" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Courses</Link>
+                      <Link to="/services" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Services</Link>
+                      <Link to="/internships" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Internships</Link>
+                    </div>
+
+                    {/* Cart Icon */}
                     <div className="relative">
                       <button
                         onClick={() => setShowCartDropdown(!showCartDropdown)}
-                        className="relative p-2 text-gray-700 hover:text-primary-600 rounded-md"
+                        className="relative p-2 text-gray-600 hover:text-violet-600 transition-colors"
                       >
                         <ShoppingCart className="w-6 h-6" />
                         {getCartCount() > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                          <span className="absolute -top-1 -right-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse shadow-lg">
                             {getCartCount()}
                           </span>
                         )}
@@ -100,53 +88,55 @@ const Navbar = () => {
 
                       {/* Cart Dropdown */}
                       {showCartDropdown && (
-                        <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl z-50 border border-gray-200">
-                          <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                            <h3 className="text-lg font-semibold text-gray-800">
+                        <div className="absolute right-0 mt-4 w-96 bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl z-50 border border-white/20 animate-fade-in-up">
+                          <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50 rounded-t-2xl">
+                            <h3 className="text-lg font-bold text-gray-800 font-heading">
                               Shopping Cart ({getCartCount()})
                             </h3>
                             <button
                               onClick={() => setShowCartDropdown(false)}
-                              className="text-gray-500 hover:text-gray-700"
+                              className="text-gray-400 hover:text-gray-600 transition-colors"
                             >
                               <X className="w-5 h-5" />
                             </button>
                           </div>
 
-                          <div className="max-h-96 overflow-y-auto">
+                          <div className="max-h-96 overflow-y-auto p-2">
                             {cart?.items?.length === 0 ? (
                               <div className="p-8 text-center text-gray-500">
-                                <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                                <p>Your cart is empty</p>
+                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                  <ShoppingCart className="w-8 h-8 text-gray-400" />
+                                </div>
+                                <p className="font-medium">Your cart is empty</p>
                               </div>
                             ) : (
-                              <div className="divide-y divide-gray-200">
+                              <div className="space-y-2">
                                 {cart?.items?.map((item) => {
                                   const courseOrInternship = item.course || item.internship;
                                   return (
-                                    <div key={item._id} className="p-4 hover:bg-gray-50 transition">
+                                    <div key={item._id} className="p-3 hover:bg-violet-50/50 rounded-xl transition-colors group border border-transparent hover:border-violet-100">
                                       <div className="flex gap-3">
                                         {courseOrInternship?.thumbnail && (
                                           <img
                                             src={courseOrInternship.thumbnail}
                                             alt={courseOrInternship.title}
-                                            className="w-20 h-20 object-cover rounded-lg"
+                                            className="w-16 h-16 object-cover rounded-lg shadow-sm"
                                           />
                                         )}
-                                        <div className="flex-1">
-                                          <h4 className="font-semibold text-gray-800 mb-1">
+                                        <div className="flex-1 min-w-0">
+                                          <h4 className="font-semibold text-gray-800 truncate">
                                             {courseOrInternship?.title}
                                           </h4>
-                                          <p className="text-sm text-gray-500 mb-2">
+                                          <p className="text-xs text-violet-600 font-medium mb-1 uppercase tracking-wider">
                                             {item.type === 'course' ? 'Course' : 'Internship'}
                                           </p>
                                           <div className="flex items-center justify-between">
-                                            <div className="text-lg font-bold text-primary-600">
-                                              ₹{courseOrInternship?.price || 0}
+                                            <div className="text-sm font-bold text-gray-900">
+                                              ₹{courseOrInternship?.price?.toLocaleString() || 0}
                                             </div>
                                             <button
                                               onClick={() => handleRemoveFromCart(item._id)}
-                                              className="text-red-500 hover:text-red-700 p-1 rounded hover:bg-red-50"
+                                              className="text-red-400 hover:text-red-500 p-1.5 rounded-full hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
                                             >
                                               <Trash2 className="w-4 h-4" />
                                             </button>
@@ -161,11 +151,11 @@ const Navbar = () => {
                           </div>
 
                           {cart?.items?.length > 0 && (
-                            <div className="p-4 border-t border-gray-200 bg-gray-50">
-                              <div className="flex justify-between items-center mb-3">
-                                <span className="font-semibold text-gray-800">Total:</span>
-                                <span className="text-2xl font-bold text-primary-600">
-                                  ₹{calculateTotal()}
+                            <div className="p-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+                              <div className="flex justify-between items-center mb-4">
+                                <span className="font-medium text-gray-600">Total</span>
+                                <span className="text-xl font-bold text-gray-900">
+                                  ₹{calculateTotal().toLocaleString()}
                                 </span>
                               </div>
                               <button
@@ -173,9 +163,9 @@ const Navbar = () => {
                                   setShowCartDropdown(false);
                                   navigate('/cart');
                                 }}
-                                className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-lg font-semibold hover:from-blue-600 hover:to-purple-700 transition"
+                                className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white py-3 rounded-xl font-bold shadow-lg shadow-violet-500/30 hover:shadow-violet-500/40 transform hover:-translate-y-0.5 transition-all duration-300"
                               >
-                                View Cart & Checkout
+                                Checkout
                               </button>
                             </div>
                           )}
@@ -184,21 +174,39 @@ const Navbar = () => {
                     </div>
                   </>
                 )}
+
                 {user.role === 'manager' && (
                   <Link
                     to="/manager/dashboard"
-                    className="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium"
+                    className="bg-violet-100 text-violet-700 px-4 py-2 rounded-lg font-medium hover:bg-violet-200 transition-colors"
                   >
-                    Dashboard
                   </Link>
                 )}
+
+                {user.role === 'service_provider' && (
+                  <div className="flex items-center space-x-1">
+                    <Link
+                      to="/service-provider/dashboard"
+                      className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all"
+                    >
+                      Dashboard
+                    </Link>
+                    <Link
+                      to="/service-provider/services"
+                      className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all"
+                    >
+                      My Services
+                    </Link>
+                  </div>
+                )}
+
                 <button
                   onClick={handleLogout}
-                  className="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700"
+                  className="px-4 py-2 text-gray-500 hover:text-red-600 font-medium transition-colors"
                 >
                   Logout
                 </button>
-              </>
+              </div>
             )}
           </div>
         </div>

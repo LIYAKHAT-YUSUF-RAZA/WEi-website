@@ -55,14 +55,14 @@ const ManageInternships = () => {
     try {
       const updateData = {
         ...editingInternship,
-        requirements: editingInternship.requirements 
-          ? editingInternship.requirements.split('\n').filter(r => r.trim()) 
+        requirements: editingInternship.requirements
+          ? editingInternship.requirements.split('\n').filter(r => r.trim())
           : [],
-        responsibilities: editingInternship.responsibilities 
-          ? editingInternship.responsibilities.split('\n').filter(r => r.trim()) 
+        responsibilities: editingInternship.responsibilities
+          ? editingInternship.responsibilities.split('\n').filter(r => r.trim())
           : [],
-        skills: editingInternship.skills 
-          ? editingInternship.skills.split('\n').filter(s => s.trim()) 
+        skills: editingInternship.skills
+          ? editingInternship.skills.split('\n').filter(s => s.trim())
           : []
       };
 
@@ -94,7 +94,7 @@ const ManageInternships = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-8 pt-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex justify-between items-center">
           <button
@@ -115,9 +115,8 @@ const ManageInternships = () => {
           <h1 className="text-3xl font-bold mb-6 text-gray-900">Manage Internships</h1>
 
           {message.text && (
-            <div className={`mb-6 p-4 rounded-lg ${
-              message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}>
+            <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
               {message.text}
             </div>
           )}
@@ -175,9 +174,8 @@ const ManageInternships = () => {
                         {internship.applicants || 0} / {internship.openings}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          internship.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${internship.status === 'open' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
                           {internship.status}
                         </span>
                       </td>
@@ -209,7 +207,7 @@ const ManageInternships = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
           <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-6">Edit Internship</h2>
-            
+
             <form onSubmit={handleUpdate} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">

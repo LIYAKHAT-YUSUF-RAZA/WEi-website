@@ -2,6 +2,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { lazy, Suspense } from 'react';
 import { useAuth } from './context/AuthContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
+import Navbar from './components/public/Navbar.jsx';
+
+import ScrollToTop from './components/public/ScrollToTop.jsx';
 
 // Import critical pages directly (no lazy loading for initial view)
 import Home from './pages/Home.jsx';
@@ -12,10 +15,8 @@ import CandidateDashboard from './pages/CandidateDashboard.jsx';
 // Lazy load all other pages for better performance
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
 const Courses = lazy(() => import('./pages/Courses.jsx'));
-const CoursesPage = lazy(() => import('./pages/CoursesPage.jsx'));
 const CourseDetails = lazy(() => import('./pages/CourseDetails.jsx'));
 const InstructorDetails = lazy(() => import('./pages/InstructorDetails.jsx'));
-const InternshipsPage = lazy(() => import('./pages/InternshipsPage.jsx'));
 const Internships = lazy(() => import('./pages/Internships.jsx'));
 const InternshipDetails = lazy(() => import('./pages/InternshipDetails.jsx'));
 const MyApplications = lazy(() => import('./pages/MyApplications.jsx'));
@@ -24,7 +25,8 @@ const PaymentPage = lazy(() => import('./pages/PaymentPage.jsx'));
 const ApplicationHistory = lazy(() => import('./pages/ApplicationHistory.jsx'));
 const EnrollmentHistory = lazy(() => import('./pages/EnrollmentHistory.jsx'));
 const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard.jsx'));
-const ManagerRequests = lazy(() => import('./pages/ManagerRequests.jsx'));
+const ManageManagerRequests = lazy(() => import('./pages/ManagerRequests.jsx'));
+const ManageServiceProviderRequests = lazy(() => import('./pages/ManagerRequestsSP.jsx'));
 const ManageManagers = lazy(() => import('./pages/ManageManagers.jsx'));
 const ManagerDetails = lazy(() => import('./pages/ManagerDetails.jsx'));
 const ManageCandidates = lazy(() => import('./pages/ManageCandidates.jsx'));
@@ -36,6 +38,10 @@ const ManageInternships = lazy(() => import('./pages/manager/ManageInternships.j
 const ManageEnrollments = lazy(() => import('./pages/manager/ManageEnrollments.jsx'));
 const ManageApplications = lazy(() => import('./pages/manager/ManageApplications.jsx'));
 const ManageInstructors = lazy(() => import('./pages/manager/ManageInstructors.jsx'));
+const ServiceProviderDashboard = lazy(() => import('./pages/service-provider/ServiceProviderDashboard.jsx'));
+const ManageServices = lazy(() => import('./pages/service-provider/ManageServices.jsx'));
+const Services = lazy(() => import('./pages/Services.jsx'));
+const ServiceDetails = lazy(() => import('./pages/ServiceDetails.jsx'));
 
 // Loading component
 const PageLoader = () => (
@@ -127,13 +133,15 @@ const PermissionRoute = ({ children, permission, requireFullAccess = false }) =>
 // Smart redirect component for /dashboard route
 const SmartDashboardRedirect = () => {
   const { user } = useAuth();
-  
+
   if (user?.role === 'candidate') {
     return <Navigate to="/candidate/dashboard" replace />;
   } else if (user?.role === 'manager') {
     return <Navigate to="/manager/dashboard" replace />;
+  } else if (user?.role === 'service_provider') {
+    return <Navigate to="/service-provider/dashboard" replace />;
   }
-  
+
   return <Navigate to="/" replace />;
 };
 
@@ -141,221 +149,238 @@ function App() {
   return (
     <CartProvider>
       <Router>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+        <ScrollToTop />
+        <Navbar />
+        <main className="pt-20 min-h-screen">
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/services" element={<Services />} />
+              <Route path="/services/:id" element={<ServiceDetails />} />
 
-            {/* Smart Dashboard Route - redirects based on user role */}
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <SmartDashboardRedirect />
-                </PrivateRoute>
-              }
-            />
+              {/* Smart Dashboard Route - redirects based on user role */}
+              <Route
+                path="/dashboard"
+                element={
+                  <PrivateRoute>
+                    <SmartDashboardRedirect />
+                  </PrivateRoute>
+                }
+              />
 
-            {/* Candidate Routes */}
-            <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
-            <Route
-              path="/courses"
-              element={
-                <PrivateRoute role="candidate">
-                  <Courses />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/courses-old"
-              element={
-                <PrivateRoute role="candidate">
-                  <CoursesPage />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/courses/:id" element={<CourseDetails />} />
-            <Route path="/instructor/:courseId" element={<InstructorDetails />} />
-            <Route
-              path="/internships"
-              element={
-                <PrivateRoute role="candidate">
-                  <Internships />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/internships-old"
-              element={
-                <PrivateRoute role="candidate">
-                  <InternshipsPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/internships/:id"
-              element={
-                <PrivateRoute role="candidate">
-                  <InternshipDetails />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/my-applications"
-              element={
-                <PrivateRoute role="candidate">
-                  <MyApplications />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/application-history"
-              element={
-                <PrivateRoute role="candidate">
-                  <ApplicationHistory />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/enrollment-history"
-              element={
-                <PrivateRoute role="candidate">
-                  <EnrollmentHistory />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/cart"
-              element={
-                <PrivateRoute role="candidate">
-                  <CartPage />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/payment"
-              element={
-                <PrivateRoute role="candidate">
-                  <PaymentPage />
-                </PrivateRoute>
-              }
-            />
+              {/* Candidate Routes */}
+              <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
+              <Route
+                path="/courses"
+                element={
+                  <PrivateRoute role="candidate">
+                    <Courses />
+                  </PrivateRoute>
+                }
+              />
+              <Route path="/courses/:id" element={<CourseDetails />} />
+              <Route path="/instructor/:courseId" element={<InstructorDetails />} />
+              <Route
+                path="/internships"
+                element={
+                  <PrivateRoute role="candidate">
+                    <Internships />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/internships/:id"
+                element={
+                  <PrivateRoute role="candidate">
+                    <InternshipDetails />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/my-applications"
+                element={
+                  <PrivateRoute role="candidate">
+                    <MyApplications />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/application-history"
+                element={
+                  <PrivateRoute role="candidate">
+                    <ApplicationHistory />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/enrollment-history"
+                element={
+                  <PrivateRoute role="candidate">
+                    <EnrollmentHistory />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/cart"
+                element={
+                  <PrivateRoute role="candidate">
+                    <CartPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/payment"
+                element={
+                  <PrivateRoute role="candidate">
+                    <PaymentPage />
+                  </PrivateRoute>
+                }
+              />
 
-            {/* Manager Routes */}
-            <Route
-              path="/manager/dashboard"
-              element={
-                <PrivateRoute role="manager">
-                  <ManagerDashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/manager/requests"
-              element={
-                <PermissionRoute requireFullAccess={true}>
-                  <ManagerRequests />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/manage-managers"
-              element={
-                <PermissionRoute requireFullAccess={true}>
-                  <ManageManagers />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/managers/:id"
-              element={
-                <PermissionRoute requireFullAccess={true}>
-                  <ManagerDetails />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/manage-candidates"
-              element={
-                <PermissionRoute requireFullAccess={true}>
-                  <ManageCandidates />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/course-requests"
-              element={
-                <PermissionRoute requireFullAccess={true}>
-                  <ManageCourseRequests />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/add-course"
-              element={
-                <PermissionRoute permission="canManageCourses">
-                  <AddCourse />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/add-internship"
-              element={
-                <PermissionRoute permission="canManageInternships">
-                  <AddInternship />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/courses"
-              element={
-                <PermissionRoute permission="canManageCourses">
-                  <ManageCourses />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/internships"
-              element={
-                <PermissionRoute permission="canManageInternships">
-                  <ManageInternships />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/enrollments"
-              element={
-                <PermissionRoute permission="canManageCourses">
-                  <ManageEnrollments />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/applications"
-              element={
-                <PermissionRoute permission="canViewAllApplications">
-                  <ManageApplications />
-                </PermissionRoute>
-              }
-            />
-            <Route
-              path="/manager/instructors"
-              element={
-                <PermissionRoute permission="canManageCourses">
-                  <ManageInstructors />
-                </PermissionRoute>
-              }
-            />
+              {/* Manager Routes */}
+              <Route
+                path="/manager/dashboard"
+                element={
+                  <PrivateRoute role="manager">
+                    <ManagerDashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/manager/requests"
+                element={
+                  <PermissionRoute requireFullAccess={true}>
+                    <ManageManagerRequests />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/manage-managers"
+                element={
+                  <PermissionRoute requireFullAccess={true}>
+                    <ManageManagers />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/managers/:id"
+                element={
+                  <PermissionRoute requireFullAccess={true}>
+                    <ManagerDetails />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/manage-candidates"
+                element={
+                  <PermissionRoute requireFullAccess={true}>
+                    <ManageCandidates />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/course-requests"
+                element={
+                  <PermissionRoute requireFullAccess={true}>
+                    <ManageCourseRequests />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/service-provider-requests"
+                element={
+                  <PermissionRoute requireFullAccess={true}>
+                    <ManageServiceProviderRequests />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/add-course"
+                element={
+                  <PermissionRoute permission="canManageCourses">
+                    <AddCourse />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/add-internship"
+                element={
+                  <PermissionRoute permission="canManageInternships">
+                    <AddInternship />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/courses"
+                element={
+                  <PermissionRoute permission="canManageCourses">
+                    <ManageCourses />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/internships"
+                element={
+                  <PermissionRoute permission="canManageInternships">
+                    <ManageInternships />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/enrollments"
+                element={
+                  <PermissionRoute permission="canManageCourses">
+                    <ManageEnrollments />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/applications"
+                element={
+                  <PermissionRoute permission="canViewAllApplications">
+                    <ManageApplications />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/instructors"
+                element={
+                  <PermissionRoute permission="canManageCourses">
+                    <ManageInstructors />
+                  </PermissionRoute>
+                }
+              />
 
-            {/* Fallback Route */}
-            <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
-        </Suspense>
+              {/* Service Provider Routes */}
+              <Route
+                path="/service-provider/dashboard"
+                element={
+                  <PrivateRoute role="service_provider">
+                    <ServiceProviderDashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/service-provider/services"
+                element={
+                  <PrivateRoute role="service_provider">
+                    <ManageServices />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* Fallback Route */}
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </Suspense>
+        </main>
       </Router>
-    </CartProvider>
+    </CartProvider >
   );
 }
 

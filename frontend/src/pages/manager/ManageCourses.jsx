@@ -67,10 +67,10 @@ const ManageCourses = () => {
       'Cloud Computing',
       'Cybersecurity'
     ];
-    
+
     // Check if the course category is a custom one
     const isCustom = !predefinedCategories.includes(course.category);
-    
+
     if (isCustom) {
       setShowCustomCategory(true);
       setCustomCategory(course.category);
@@ -78,12 +78,12 @@ const ManageCourses = () => {
       setShowCustomCategory(false);
       setCustomCategory('');
     }
-    
+
     // Determine instructor mode - if instructor is an ID string, use select mode, otherwise manual
     const hasInstructorRef = course.instructor && typeof course.instructor === 'object' && course.instructor._id;
     const hasManualDetails = course.instructorDetails && course.instructorDetails.name;
     setInstructorMode(hasInstructorRef ? 'select' : 'manual');
-    
+
     setEditingCourse({
       ...course,
       category: isCustom ? 'Other' : course.category,
@@ -108,17 +108,17 @@ const ManageCourses = () => {
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    
+
     // Validate custom category if 'Other' is selected
     if (editingCourse.category === 'Other' && !customCategory.trim()) {
       setMessage({ type: 'error', text: 'Please enter a custom category name' });
       return;
     }
-    
+
     try {
       const originalPrice = parseFloat(editingCourse.originalPrice) || 0;
       const discountPrice = parseFloat(editingCourse.price) || 0;
-      const discountPercentage = originalPrice > 0 && discountPrice > 0 
+      const discountPercentage = originalPrice > 0 && discountPrice > 0
         ? Math.round(((originalPrice - discountPrice) / originalPrice) * 100)
         : 0;
 
@@ -128,11 +128,11 @@ const ManageCourses = () => {
         price: discountPrice,
         originalPrice: originalPrice,
         discountPercentage: discountPercentage,
-        prerequisites: editingCourse.prerequisites 
-          ? editingCourse.prerequisites.split('\n').filter(p => p.trim()) 
+        prerequisites: editingCourse.prerequisites
+          ? editingCourse.prerequisites.split('\n').filter(p => p.trim())
           : [],
-        learningOutcomes: editingCourse.learningOutcomes 
-          ? editingCourse.learningOutcomes.split('\n').filter(l => l.trim()) 
+        learningOutcomes: editingCourse.learningOutcomes
+          ? editingCourse.learningOutcomes.split('\n').filter(l => l.trim())
           : []
       };
 
@@ -173,7 +173,7 @@ const ManageCourses = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // If category is changed to 'Other', show custom input
     if (name === 'category' && value === 'Other') {
       setShowCustomCategory(true);
@@ -181,13 +181,13 @@ const ManageCourses = () => {
       setShowCustomCategory(false);
       setCustomCategory('');
     }
-    
+
     // Handle number fields - convert empty string to actual empty value, not 0
     let processedValue = value;
     if (name === 'price' || name === 'originalPrice' || name === 'maxStudents') {
       processedValue = value === '' ? '' : value;
     }
-      
+
     setEditingCourse(prev => ({
       ...prev,
       [name]: processedValue
@@ -249,7 +249,7 @@ const ManageCourses = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-8 pt-32">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex justify-between items-center">
           <button
@@ -270,9 +270,8 @@ const ManageCourses = () => {
           <h1 className="text-3xl font-bold mb-6 text-gray-900">Manage Courses</h1>
 
           {message.text && (
-            <div className={`mb-6 p-4 rounded-lg ${
-              message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}>
+            <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
               {message.text}
             </div>
           )}
@@ -326,9 +325,8 @@ const ManageCourses = () => {
                         {course.enrolled || 0} / {course.maxStudents}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          course.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${course.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                          }`}>
                           {course.status}
                         </span>
                       </td>
@@ -360,7 +358,7 @@ const ManageCourses = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
           <div className="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 my-8 max-h-[90vh] overflow-y-auto">
             <h2 className="text-2xl font-bold mb-6">Edit Course</h2>
-            
+
             <form onSubmit={handleUpdate} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
@@ -403,7 +401,7 @@ const ManageCourses = () => {
                     <option>Cybersecurity</option>
                     <option>Other</option>
                   </select>
-                  
+
                   {/* Custom Category Input */}
                   {showCustomCategory && (
                     <div className="mt-3">
@@ -499,7 +497,7 @@ const ManageCourses = () => {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Course Thumbnail</label>
-                  
+
                   <div className="space-y-3">
                     {/* File Upload Option */}
                     <div>
@@ -511,13 +509,13 @@ const ManageCourses = () => {
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                       />
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-px bg-gray-300"></div>
                       <span className="text-xs text-gray-500">OR</span>
                       <div className="flex-1 h-px bg-gray-300"></div>
                     </div>
-                    
+
                     {/* URL Input Option */}
                     <div>
                       <label className="block text-xs text-gray-600 mb-1">Enter Image URL</label>
@@ -529,7 +527,7 @@ const ManageCourses = () => {
                         placeholder="https://example.com/image.jpg"
                       />
                     </div>
-                    
+
                     {/* Preview */}
                     {thumbnailPreview && (
                       <div className="mt-3">
@@ -565,28 +563,26 @@ const ManageCourses = () => {
                 {/* Instructor Details Section */}
                 <div className="md:col-span-2 pt-4 border-t">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Instructor Details</h3>
-                  
+
                   {/* Mode Toggle Buttons */}
                   <div className="flex gap-3 mb-6">
                     <button
                       type="button"
                       onClick={() => setInstructorMode('select')}
-                      className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
-                        instructorMode === 'select'
+                      className={`px-6 py-2.5 rounded-lg font-medium transition-all ${instructorMode === 'select'
                           ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                        }`}
                     >
                       Select from List
                     </button>
                     <button
                       type="button"
                       onClick={() => setInstructorMode('manual')}
-                      className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
-                        instructorMode === 'manual'
+                      className={`px-6 py-2.5 rounded-lg font-medium transition-all ${instructorMode === 'manual'
                           ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg'
                           : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
+                        }`}
                     >
                       Enter Manually
                     </button>
@@ -601,7 +597,7 @@ const ManageCourses = () => {
                       <select
                         name="instructor"
                         value={editingCourse.instructor}
-                        onChange={(e) => setEditingCourse({...editingCourse, instructor: e.target.value})}
+                        onChange={(e) => setEditingCourse({ ...editingCourse, instructor: e.target.value })}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="">-- Select Instructor --</option>
@@ -625,8 +621,8 @@ const ManageCourses = () => {
                           return (
                             <div className="flex gap-4">
                               {selected.image && (
-                                <img 
-                                  src={selected.image} 
+                                <img
+                                  src={selected.image}
                                   alt={selected.name}
                                   className="w-20 h-20 rounded-full object-cover border-2 border-white shadow-md"
                                 />
@@ -712,11 +708,10 @@ const ManageCourses = () => {
                           {[1, 2, 3, 4, 5].map((star) => (
                             <svg
                               key={star}
-                              className={`w-6 h-6 ${
-                                star <= (editingCourse.instructorRating || 0)
+                              className={`w-6 h-6 ${star <= (editingCourse.instructorRating || 0)
                                   ? 'text-yellow-400'
                                   : 'text-gray-300'
-                              }`}
+                                }`}
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -733,7 +728,7 @@ const ManageCourses = () => {
 
                     <div className="md:col-span-2">
                       <label className="block text-sm font-medium text-gray-700 mb-2">Instructor Image</label>
-                      
+
                       <div className="space-y-3">
                         {/* File Upload Option */}
                         <div>
@@ -745,13 +740,13 @@ const ManageCourses = () => {
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                           />
                         </div>
-                        
+
                         <div className="flex items-center gap-2">
                           <div className="flex-1 h-px bg-gray-300"></div>
                           <span className="text-xs text-gray-500">OR</span>
                           <div className="flex-1 h-px bg-gray-300"></div>
                         </div>
-                        
+
                         {/* URL Input Option */}
                         <div>
                           <label className="block text-xs text-gray-600 mb-1">Enter Image URL</label>
@@ -764,15 +759,15 @@ const ManageCourses = () => {
                             placeholder="https://example.com/instructor-photo.jpg"
                           />
                         </div>
-                        
+
                         {/* Preview */}
                         {instructorImagePreview && (
                           <div className="mt-3">
                             <p className="text-xs text-gray-600 mb-2">Preview:</p>
-                            <img 
-                              src={instructorImagePreview} 
-                              alt="Instructor preview" 
-                              className="h-24 w-24 rounded-full object-cover border-2 border-gray-200" 
+                            <img
+                              src={instructorImagePreview}
+                              alt="Instructor preview"
+                              className="h-24 w-24 rounded-full object-cover border-2 border-gray-200"
                             />
                           </div>
                         )}

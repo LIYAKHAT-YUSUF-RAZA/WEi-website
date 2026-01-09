@@ -45,12 +45,12 @@ const ManageCourseRequests = () => {
 
   const handleSubmitDecision = async () => {
     try {
-      const endpoint = decision === 'approve' 
+      const endpoint = decision === 'approve'
         ? `/api/course-requests/${selectedRequest._id}/approve`
         : `/api/course-requests/${selectedRequest._id}/reject`;
 
       await axios.put(endpoint, { message });
-      
+
       setMessageType({
         type: 'success',
         text: `Course request ${decision}d successfully!`
@@ -80,8 +80,8 @@ const ManageCourseRequests = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       <Navbar />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-32">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">📚 Manage Course Requests</h1>
           <p className="text-gray-600">Review and approve course enrollment requests from candidates</p>
@@ -89,11 +89,10 @@ const ManageCourseRequests = () => {
 
         {/* Message */}
         {messageType.text && (
-          <div className={`mb-6 p-4 rounded-lg ${
-            messageType.type === 'success' 
-              ? 'bg-green-100 text-green-700' 
+          <div className={`mb-6 p-4 rounded-lg ${messageType.type === 'success'
+              ? 'bg-green-100 text-green-700'
               : 'bg-red-100 text-red-700'
-          }`}>
+            }`}>
             {messageType.text}
           </div>
         )}
@@ -102,41 +101,37 @@ const ManageCourseRequests = () => {
         <div className="bg-white rounded-lg shadow-md p-4 mb-6 flex gap-4">
           <button
             onClick={() => setFilter('all')}
-            className={`px-6 py-2 rounded-lg font-semibold transition ${
-              filter === 'all'
+            className={`px-6 py-2 rounded-lg font-semibold transition ${filter === 'all'
                 ? 'bg-blue-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             All Requests
           </button>
           <button
             onClick={() => setFilter('pending')}
-            className={`px-6 py-2 rounded-lg font-semibold transition ${
-              filter === 'pending'
+            className={`px-6 py-2 rounded-lg font-semibold transition ${filter === 'pending'
                 ? 'bg-yellow-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             Pending
           </button>
           <button
             onClick={() => setFilter('approved')}
-            className={`px-6 py-2 rounded-lg font-semibold transition ${
-              filter === 'approved'
+            className={`px-6 py-2 rounded-lg font-semibold transition ${filter === 'approved'
                 ? 'bg-green-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             Approved
           </button>
           <button
             onClick={() => setFilter('rejected')}
-            className={`px-6 py-2 rounded-lg font-semibold transition ${
-              filter === 'rejected'
+            className={`px-6 py-2 rounded-lg font-semibold transition ${filter === 'rejected'
                 ? 'bg-red-600 text-white'
                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
+              }`}
           >
             Rejected
           </button>
@@ -171,13 +166,12 @@ const ManageCourseRequests = () => {
                   {/* Status */}
                   <div>
                     <h3 className="text-lg font-bold text-gray-900 mb-2">Status</h3>
-                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                      request.status === 'pending' 
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${request.status === 'pending'
                         ? 'bg-yellow-100 text-yellow-800'
                         : request.status === 'approved'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-red-100 text-red-800'
+                      }`}>
                       {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
                     </span>
                   </div>
@@ -263,11 +257,10 @@ const ManageCourseRequests = () => {
               </button>
               <button
                 onClick={handleSubmitDecision}
-                className={`flex-1 px-4 py-2 text-white font-semibold rounded-lg transition ${
-                  decision === 'approve'
+                className={`flex-1 px-4 py-2 text-white font-semibold rounded-lg transition ${decision === 'approve'
                     ? 'bg-green-600 hover:bg-green-700'
                     : 'bg-red-600 hover:bg-red-700'
-                }`}
+                  }`}
               >
                 {decision === 'approve' ? 'Approve Request' : 'Reject Request'}
               </button>

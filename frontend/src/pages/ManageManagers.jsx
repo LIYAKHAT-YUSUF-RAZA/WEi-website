@@ -73,7 +73,7 @@ const ManageManagers = () => {
       await axios.put(`/api/managers/${selectedManager._id}/permissions`, {
         permissions
       });
-      
+
       alert('Permissions updated successfully!');
       setShowModal(false);
       setSelectedManager(null);
@@ -111,14 +111,14 @@ const ManageManagers = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pt-32">
         <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
           Manage Managers
         </h1>
 
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-2xl font-bold mb-4 text-gray-800">All Managers ({managers.length})</h2>
-          
+
           {managers.length === 0 ? (
             <div className="text-center text-gray-500 py-8">
               No managers found
@@ -174,13 +174,13 @@ const ManageManagers = () => {
                               {manager.permissions?.canRejectApplications && (
                                 <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full">❌ Reject</span>
                               )}
-                              {!manager.permissions?.fullAccess && 
-                               !manager.permissions?.canManageCourses && 
-                               !manager.permissions?.canManageInternships && 
-                               !manager.permissions?.canApproveApplications && 
-                               !manager.permissions?.canRejectApplications && (
-                                <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">No permissions</span>
-                              )}
+                              {!manager.permissions?.fullAccess &&
+                                !manager.permissions?.canManageCourses &&
+                                !manager.permissions?.canManageInternships &&
+                                !manager.permissions?.canApproveApplications &&
+                                !manager.permissions?.canRejectApplications && (
+                                  <span className="px-2 py-1 bg-gray-100 text-gray-800 rounded-full">No permissions</span>
+                                )}
                             </div>
                           )}
                         </div>
@@ -227,10 +227,10 @@ const ManageManagers = () => {
               <h2 className="text-2xl font-bold text-gray-800">Edit Permissions for {selectedManager.name}</h2>
               <p className="text-sm text-gray-600">{selectedManager.email}</p>
             </div>
-            
+
             <div className="p-6">
               <h4 className="text-lg font-bold mb-4 text-gray-800">Set Permissions</h4>
-              
+
               <div className="space-y-3">
                 <label className="flex items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg cursor-pointer hover:from-purple-100 hover:to-blue-100 transition-all">
                   <input

@@ -21,7 +21,7 @@ const ApplicationHistory = () => {
         axios.get('/api/enrollments/my-enrollments'),
         axios.get('/api/applications/my-applications')
       ]);
-      
+
       setEnrollments(enrollmentsRes.data);
       setApplications(applicationsRes.data.filter(app => app.type === 'internship'));
       setLoading(false);
@@ -143,7 +143,7 @@ const ApplicationHistory = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 pt-24">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-12">
         <div className="max-w-7xl mx-auto px-6">
@@ -220,33 +220,30 @@ const ApplicationHistory = () => {
           <div className="flex flex-wrap gap-3 mb-6">
             <button
               onClick={() => setActiveTab('all')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                activeTab === 'all'
+              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'all'
                   ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               <GraduationCap className="w-5 h-5" />
               All ({enrollments.length + applications.length})
             </button>
             <button
               onClick={() => setActiveTab('courses')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                activeTab === 'courses'
+              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'courses'
                   ? 'bg-blue-500 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               <BookOpen className="w-5 h-5" />
               Courses ({enrollments.length})
             </button>
             <button
               onClick={() => setActiveTab('internships')}
-              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${
-                activeTab === 'internships'
+              className={`px-6 py-3 rounded-lg font-medium transition-all flex items-center gap-2 ${activeTab === 'internships'
                   ? 'bg-purple-500 text-white shadow-lg'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               <Briefcase className="w-5 h-5" />
               Internships ({applications.length})
@@ -258,41 +255,37 @@ const ApplicationHistory = () => {
             <span className="text-gray-700 font-medium self-center">Filter by Status:</span>
             <button
               onClick={() => setStatusFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                statusFilter === 'all'
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'all'
                   ? 'bg-gray-800 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               All
             </button>
             <button
               onClick={() => setStatusFilter('accepted')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                statusFilter === 'accepted'
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'accepted'
                   ? 'bg-green-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Accepted
             </button>
             <button
               onClick={() => setStatusFilter('pending')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                statusFilter === 'pending'
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'pending'
                   ? 'bg-yellow-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Pending
             </button>
             <button
               onClick={() => setStatusFilter('rejected')}
-              className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                statusFilter === 'rejected'
+              className={`px-4 py-2 rounded-lg font-medium transition-all ${statusFilter === 'rejected'
                   ? 'bg-red-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
+                }`}
             >
               Rejected
             </button>
@@ -307,7 +300,7 @@ const ApplicationHistory = () => {
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">No Applications Found</h3>
             <p className="text-gray-600">
-              {statusFilter === 'all' 
+              {statusFilter === 'all'
                 ? "You haven't applied for any courses or internships yet."
                 : `No ${statusFilter} applications found.`}
             </p>
@@ -330,11 +323,10 @@ const ApplicationHistory = () => {
                           className="w-full md:w-48 h-32 object-cover rounded-lg"
                         />
                       ) : (
-                        <div className={`w-full md:w-48 h-32 bg-gradient-to-br ${
-                          item.type === 'course' 
-                            ? 'from-blue-500 to-purple-600' 
+                        <div className={`w-full md:w-48 h-32 bg-gradient-to-br ${item.type === 'course'
+                            ? 'from-blue-500 to-purple-600'
                             : 'from-purple-500 to-pink-600'
-                        } rounded-lg flex items-center justify-center`}>
+                          } rounded-lg flex items-center justify-center`}>
                           {item.type === 'course' ? (
                             <BookOpen className="w-12 h-12 text-white opacity-50" />
                           ) : (
@@ -349,11 +341,10 @@ const ApplicationHistory = () => {
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4 mb-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-3 mb-2">
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                              item.type === 'course' 
-                                ? 'bg-blue-100 text-blue-700' 
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold ${item.type === 'course'
+                                ? 'bg-blue-100 text-blue-700'
                                 : 'bg-purple-100 text-purple-700'
-                            }`}>
+                              }`}>
                               {item.type === 'course' ? '📚 Course' : '💼 Internship'}
                             </span>
                           </div>
@@ -441,8 +432,8 @@ const ApplicationHistory = () => {
                       {/* Action Buttons */}
                       <div className="flex flex-wrap gap-3">
                         <button
-                          onClick={() => navigate(item.type === 'course' 
-                            ? `/courses/${item.itemId}` 
+                          onClick={() => navigate(item.type === 'course'
+                            ? `/courses/${item.itemId}`
                             : `/internships/${item.itemId}`
                           )}
                           className="px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-blue-700 hover:to-purple-700 transition-all"

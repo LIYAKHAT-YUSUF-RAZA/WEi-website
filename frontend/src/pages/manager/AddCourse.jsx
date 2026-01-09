@@ -58,7 +58,7 @@ const AddCourse = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    
+
     // If category is changed to 'Other', show custom input
     if (name === 'category' && value === 'Other') {
       setShowCustomCategory(true);
@@ -66,13 +66,13 @@ const AddCourse = () => {
       setShowCustomCategory(false);
       setCustomCategory('');
     }
-    
+
     // Preserve empty string values for numeric fields instead of converting to 0
     let processedValue = value;
     if (name === 'price' || name === 'originalPrice' || name === 'maxStudents') {
       processedValue = value === '' ? '' : value;
     }
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: processedValue
@@ -81,13 +81,13 @@ const AddCourse = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate custom category if 'Other' is selected
     if (formData.category === 'Other' && !customCategory.trim()) {
       setMessage({ type: 'error', text: 'Please enter a custom category name' });
       return;
     }
-    
+
     setLoading(true);
     setMessage({ type: '', text: '' });
 
@@ -99,7 +99,7 @@ const AddCourse = () => {
       const discountPrice = formData.price !== '' && formData.price !== null && formData.price !== undefined
         ? parseFloat(formData.price)
         : 0;
-      const discountPercentage = originalPrice && discountPrice 
+      const discountPercentage = originalPrice && discountPrice
         ? Math.round(((originalPrice - discountPrice) / originalPrice) * 100)
         : 0;
 
@@ -116,11 +116,11 @@ const AddCourse = () => {
         startDate: formData.startDate || undefined,
         endDate: formData.endDate || undefined,
         thumbnail: formData.thumbnail || '',
-        prerequisites: formData.prerequisites 
-          ? formData.prerequisites.split('\n').filter(p => p.trim()) 
+        prerequisites: formData.prerequisites
+          ? formData.prerequisites.split('\n').filter(p => p.trim())
           : [],
-        learningOutcomes: formData.learningOutcomes 
-          ? formData.learningOutcomes.split('\n').filter(l => l.trim()) 
+        learningOutcomes: formData.learningOutcomes
+          ? formData.learningOutcomes.split('\n').filter(l => l.trim())
           : [],
         instructor: instructorMode === 'select' ? (formData.instructor || null) : null,
         instructorDetails: instructorMode === 'manual' ? {
@@ -134,15 +134,15 @@ const AddCourse = () => {
 
       const response = await axios.post('/api/manager/courses', courseData);
       setMessage({ type: 'success', text: response.data.message });
-      
+
       // Reset form
       setTimeout(() => {
         navigate('/manager/dashboard');
       }, 2000);
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to create course' 
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to create course'
       });
     } finally {
       setLoading(false);
@@ -150,7 +150,7 @@ const AddCourse = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-8 pt-32">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <button
@@ -165,9 +165,8 @@ const AddCourse = () => {
           <h1 className="text-3xl font-bold mb-6 text-gray-900">Add New Course</h1>
 
           {message.text && (
-            <div className={`mb-6 p-4 rounded-lg ${
-              message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}>
+            <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
               {message.text}
             </div>
           )}
@@ -222,7 +221,7 @@ const AddCourse = () => {
                       <option key={cat} value={cat}>{cat}</option>
                     ))}
                   </select>
-                  
+
                   {/* Custom Category Input */}
                   {showCustomCategory && (
                     <div className="mt-3">
@@ -305,7 +304,7 @@ const AddCourse = () => {
                   <p className="text-xs text-gray-500 mt-1">This is the price students will pay</p>
                   {formData.originalPrice > 0 && formData.price > 0 && formData.originalPrice > formData.price && (
                     <p className="text-sm font-semibold text-green-600 mt-2">
-                      ✅ Discount: {Math.round(((formData.originalPrice - formData.price) / formData.originalPrice) * 100)}% OFF | 
+                      ✅ Discount: {Math.round(((formData.originalPrice - formData.price) / formData.originalPrice) * 100)}% OFF |
                       Students save ₹{formData.originalPrice - formData.price}
                     </p>
                   )}
@@ -409,28 +408,26 @@ const AddCourse = () => {
             {/* Instructor Information */}
             <div>
               <h2 className="text-xl font-semibold mb-4 text-gray-800">Instructor Assignment</h2>
-              
+
               {/* Mode Toggle */}
               <div className="mb-6 flex gap-4">
                 <button
                   type="button"
                   onClick={() => setInstructorMode('select')}
-                  className={`px-4 py-2 rounded-lg font-medium transition ${
-                    instructorMode === 'select'
+                  className={`px-4 py-2 rounded-lg font-medium transition ${instructorMode === 'select'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                    }`}
                 >
                   Select from List
                 </button>
                 <button
                   type="button"
                   onClick={() => setInstructorMode('manual')}
-                  className={`px-4 py-2 rounded-lg font-medium transition ${
-                    instructorMode === 'manual'
+                  className={`px-4 py-2 rounded-lg font-medium transition ${instructorMode === 'manual'
                       ? 'bg-blue-600 text-white'
                       : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                    }`}
                 >
                   Enter Manually
                 </button>
@@ -557,11 +554,10 @@ const AddCourse = () => {
                         {[1, 2, 3, 4, 5].map((star) => (
                           <svg
                             key={star}
-                            className={`w-6 h-6 ${
-                              star <= (formData.instructorRating || 0)
+                            className={`w-6 h-6 ${star <= (formData.instructorRating || 0)
                                 ? 'text-yellow-400'
                                 : 'text-gray-300'
-                            }`}
+                              }`}
                             fill="currentColor"
                             viewBox="0 0 20 20"
                           >

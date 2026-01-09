@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
-import Navbar from '../components/public/Navbar.jsx';
 import axios from 'axios';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -33,7 +32,7 @@ const Register = () => {
     };
 
     const score = Object.values(checks).filter(Boolean).length;
-    
+
     let strength = 'Very Weak';
     let color = 'bg-red-500';
     let width = '20%';
@@ -89,10 +88,21 @@ const Register = () => {
 
     try {
       const { confirmPassword, role, ...registerData } = formData;
-      
+
       // If registering as manager, create a request instead
       if (role === 'manager') {
         const response = await axios.post('/api/manager-requests', registerData);
+        setSuccess(response.data.message);
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          phone: '',
+          role: 'candidate'
+        });
+      } else if (role === 'service_provider') {
+        const response = await axios.post('/api/service-provider-requests', registerData);
         setSuccess(response.data.message);
         setFormData({
           name: '',
@@ -115,8 +125,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-100 to-purple-100">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-green-100 via-blue-100 to-purple-100 pt-24">
       <div className="flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-8">
           <div className="text-center">
@@ -131,14 +140,14 @@ const Register = () => {
                 <p className="font-semibold">⚠️ {error}</p>
               </div>
             )}
-            
+
             {success && (
               <div className="bg-green-100 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded-lg">
                 <p className="font-semibold">✅ {success}</p>
                 <p className="text-sm mt-1">You will receive an email notification once your request is approved.</p>
               </div>
             )}
-            
+
             <div className="space-y-4">
               <div>
                 <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -200,6 +209,7 @@ const Register = () => {
                 >
                   <option value="candidate">👨‍🎓 Candidate</option>
                   <option value="manager">👔 Manager</option>
+                  <option value="service_provider">🛠️ Service Provider</option>
                 </select>
               </div>
 
@@ -234,20 +244,19 @@ const Register = () => {
                   <div className="mt-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-sm font-semibold text-gray-700">Password Strength</span>
-                      <span className={`text-sm font-bold ${
-                        passwordStrength.strength === 'Strong' ? 'text-green-600' :
+                      <span className={`text-sm font-bold ${passwordStrength.strength === 'Strong' ? 'text-green-600' :
                         passwordStrength.strength === 'Good' ? 'text-blue-600' :
-                        passwordStrength.strength === 'Fair' ? 'text-yellow-600' :
-                        passwordStrength.strength === 'Weak' ? 'text-orange-600' :
-                        'text-red-600'
-                      }`}>
+                          passwordStrength.strength === 'Fair' ? 'text-yellow-600' :
+                            passwordStrength.strength === 'Weak' ? 'text-orange-600' :
+                              'text-red-600'
+                        }`}>
                         {passwordStrength.strength}
                       </span>
                     </div>
-                    
+
                     {/* Strength Bar */}
                     <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden mb-3">
-                      <div 
+                      <div
                         className={`h-full ${passwordStrength.color} transition-all duration-300`}
                         style={{ width: passwordStrength.width }}
                       ></div>

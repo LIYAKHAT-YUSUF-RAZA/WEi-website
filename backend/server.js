@@ -20,6 +20,7 @@ app.use(compression());
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:3000',
   'https://dev.weintegrity.com',
   'http://dev.weintegrity.com',
@@ -31,14 +32,23 @@ const allowedOrigins = [
 ].filter(Boolean);
 
 app.use(cors({
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
+
+    // Check if the origin is in the explicit allowed list
     if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+      return callback(null, true);
     }
+
+    // Allow any localhost origin (for dynamic Vite ports: 5173, 5174, 5175, etc.)
+    if (origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+
+    console.log('❌ CORS Blocked Origin:', origin);
+    console.log('✅ Allowed Origins:', allowedOrigins);
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));
@@ -60,6 +70,9 @@ app.use('/api/candidates', require('./routes/candidateRoutes'));
 app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/enrollments', require('./routes/courseEnrollmentRoutes'));
 app.use('/api/manager/enrollments', require('./routes/enrollmentManagementRoutes'));
+app.use('/api/service-provider-requests', require('./routes/serviceProviderRequestRoutes'));
+app.use('/api/services', require('./routes/serviceRoutes'));
+app.use('/api/reviews', require('./routes/reviewRoutes'));
 
 // Welcome route
 app.get('/', (req, res) => {
@@ -69,6 +82,11 @@ app.get('/', (req, res) => {
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
+  // Write to log file for debugging
+  const fs = require('fs');
+  const path = require('path');
+  fs.appendFileSync(path.join(__dirname, 'server_error.log'), `${new Date().toISOString()} - ${err.stack}\n\n`);
+
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 

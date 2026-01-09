@@ -51,28 +51,28 @@ const AddInternship = () => {
         startDate: formData.startDate || undefined,
         applicationDeadline: formData.applicationDeadline || undefined,
         image: formData.image || '',
-        requirements: formData.requirements 
-          ? formData.requirements.split('\n').filter(r => r.trim()) 
+        requirements: formData.requirements
+          ? formData.requirements.split('\n').filter(r => r.trim())
           : [],
-        responsibilities: formData.responsibilities 
-          ? formData.responsibilities.split('\n').filter(r => r.trim()) 
+        responsibilities: formData.responsibilities
+          ? formData.responsibilities.split('\n').filter(r => r.trim())
           : [],
-        skills: formData.skills 
-          ? formData.skills.split('\n').filter(s => s.trim()) 
+        skills: formData.skills
+          ? formData.skills.split('\n').filter(s => s.trim())
           : []
       };
 
       const response = await axios.post('/api/manager/internships', internshipData);
       setMessage({ type: 'success', text: response.data.message });
-      
+
       // Reset form and redirect
       setTimeout(() => {
         navigate('/manager/dashboard');
       }, 2000);
     } catch (error) {
-      setMessage({ 
-        type: 'error', 
-        text: error.response?.data?.message || 'Failed to create internship' 
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to create internship'
       });
     } finally {
       setLoading(false);
@@ -80,7 +80,7 @@ const AddInternship = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-50 py-8 pt-32">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6">
           <button
@@ -95,9 +95,8 @@ const AddInternship = () => {
           <h1 className="text-3xl font-bold mb-6 text-gray-900">Add New Internship</h1>
 
           {message.text && (
-            <div className={`mb-6 p-4 rounded-lg ${
-              message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-            }`}>
+            <div className={`mb-6 p-4 rounded-lg ${message.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+              }`}>
               {message.text}
             </div>
           )}

@@ -58,7 +58,7 @@ const ManagerRequests = () => {
         status: 'approved',
         permissions
       });
-      
+
       alert('Manager request approved! They will receive an email notification.');
       setSelectedRequest(null);
       setPermissions({
@@ -83,7 +83,7 @@ const ManagerRequests = () => {
       await axios.put(`/api/manager-requests/${requestId}`, {
         status: 'rejected'
       });
-      
+
       alert('Manager request rejected.');
       setSelectedRequest(null);
       fetchRequests();
@@ -109,7 +109,7 @@ const ManagerRequests = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50">
       <Navbar />
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-8 pt-32">
         <h1 className="text-4xl font-bold mb-8 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
           Manager Account Requests
         </h1>
@@ -117,7 +117,7 @@ const ManagerRequests = () => {
         {/* Pending Requests */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold mb-4 text-gray-800">Pending Requests ({pendingRequests.length})</h2>
-          
+
           {pendingRequests.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
               No pending requests
@@ -134,11 +134,11 @@ const ManagerRequests = () => {
                       {new Date(request.createdAt).toLocaleDateString()}
                     </span>
                   </div>
-                  
+
                   <h3 className="text-xl font-bold text-gray-800 mb-2">{request.name}</h3>
                   <p className="text-gray-600 mb-1">📧 {request.email}</p>
                   <p className="text-gray-600 mb-4">📱 {request.phone || 'No phone provided'}</p>
-                  
+
                   <button
                     onClick={() => setSelectedRequest(request)}
                     className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300"
@@ -154,7 +154,7 @@ const ManagerRequests = () => {
         {/* Processed Requests */}
         <div>
           <h2 className="text-2xl font-bold mb-4 text-gray-800">Processed Requests ({processedRequests.length})</h2>
-          
+
           {processedRequests.length === 0 ? (
             <div className="bg-white rounded-lg shadow-md p-8 text-center text-gray-500">
               No processed requests
@@ -170,11 +170,10 @@ const ManagerRequests = () => {
                       {new Date(request.createdAt).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className={`px-4 py-2 rounded-full font-semibold ${
-                    request.status === 'approved' 
-                      ? 'bg-green-100 text-green-800' 
+                  <span className={`px-4 py-2 rounded-full font-semibold ${request.status === 'approved'
+                      ? 'bg-green-100 text-green-800'
                       : 'bg-red-100 text-red-800'
-                  }`}>
+                    }`}>
                     {request.status === 'approved' ? '✅ Approved' : '❌ Rejected'}
                   </span>
                 </div>
@@ -191,7 +190,7 @@ const ManagerRequests = () => {
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-2xl font-bold text-gray-800">Review Manager Request</h2>
             </div>
-            
+
             <div className="p-6">
               <div className="mb-6">
                 <h3 className="text-xl font-bold mb-2">{selectedRequest.name}</h3>
@@ -204,7 +203,7 @@ const ManagerRequests = () => {
 
               <div className="mb-6">
                 <h4 className="text-lg font-bold mb-4 text-gray-800">Set Permissions</h4>
-                
+
                 <div className="space-y-3">
                   <label className="flex items-center p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg cursor-pointer hover:from-purple-100 hover:to-blue-100 transition-all">
                     <input

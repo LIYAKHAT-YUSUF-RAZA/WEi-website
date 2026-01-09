@@ -4,14 +4,14 @@ const User = require('../models/User');
 const auth = async (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
+
     if (!token) {
       return res.status(401).json({ message: 'No authentication token, access denied' });
     }
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
-    
+
     if (!user) {
       return res.status(401).json({ message: 'User not found' });
     }
@@ -51,8 +51,8 @@ const checkPermission = (permissionName) => {
 
     // Check specific permission
     if (!req.user.permissions || !req.user.permissions[permissionName]) {
-      return res.status(403).json({ 
-        message: `Access denied. You don't have permission to ${permissionName.replace('can', '').replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.` 
+      return res.status(403).json({
+        message: `Access denied. You don't have permission to ${permissionName.replace('can', '').replace(/([A-Z])/g, ' $1').toLowerCase().trim()}.`
       });
     }
 
@@ -60,4 +60,11 @@ const checkPermission = (permissionName) => {
   };
 };
 
-module.exports = { auth, isManager, isCandidate, checkPermission };
+const isServiceProvider = (req, res, next) => {
+  if (req.user.role !== 'service_provider') {
+    return res.status(403).json({ message: 'Access denied. Service Provider role required.' });
+  }
+  next();
+};
+
+module.exports = { auth, isManager, isCandidate, isServiceProvider, checkPermission };
