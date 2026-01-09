@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   Search, X, ChevronLeft, ChevronRight, Briefcase, Users, Award,
-  TrendingUp, ArrowRight, Star, Clock, MapPin, DollarSign, CheckCircle, Globe, ShoppingCart
+  TrendingUp, ArrowRight, Star, Clock, MapPin, DollarSign, CheckCircle, Globe, ShoppingCart, Phone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
@@ -17,6 +17,34 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [serviceSearch, setServiceSearch] = useState('');
   const [selectedServiceRole, setSelectedServiceRole] = useState(null);
+
+  // Contact Form State
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    subject: '',
+    message: ''
+  });
+  const [contactLoading, setContactLoading] = useState(false);
+
+  const handleContactChange = (e) => {
+    setContactForm({ ...contactForm, [e.target.name]: e.target.value });
+  };
+
+  const handleContactSubmit = async (e) => {
+    e.preventDefault();
+    setContactLoading(true);
+    try {
+      await axios.post('/api/contact', contactForm);
+      alert('Message sent successfully! We will get back to you soon.');
+      setContactForm({ name: '', email: '', subject: '', message: '' });
+    } catch (error) {
+      console.error('Contact error:', error);
+      alert(error.response?.data?.message || 'Failed to send message. Please try again.');
+    } finally {
+      setContactLoading(false);
+    }
+  };
 
   // ... (keeping lines 20-136 as is, implicit in this replacement if I use range correctly? No, replace_file_content replaces the whole block. I need to be careful.)
   // I will only replace the top part and the fetchData part.
@@ -856,22 +884,150 @@ const Home = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 bg-gray-900 relative overflow-hidden">
+      {/* Contact Section */}
+      <section className="py-24 bg-gray-900 relative overflow-hidden" id="contact">
         <div className="absolute inset-0 bg-gradient-to-br from-violet-900/50 to-fuchsia-900/50" />
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-          <h2 className="text-4xl md:text-5xl font-bold font-heading text-white mb-6">
-            Ready to Take the Next Step?
-          </h2>
-          <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">
-            Join thousands of students who have already transformed their careers with WEintegrity.
-          </p>
-          <Link
-            to="/register"
-            className="inline-block px-10 py-4 bg-white text-gray-900 rounded-full font-bold text-lg hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] hover:scale-105 transition-all duration-300"
-          >
-            Get Started for Free
-          </Link>
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-16 items-center">
+
+            {/* Contact Info */}
+            <div className="text-white">
+              <h2 className="text-4xl md:text-5xl font-bold font-heading mb-6">
+                Get in Touch
+              </h2>
+              <p className="text-xl text-gray-300 mb-10 leading-relaxed">
+                Have questions or want to collaborate? We'd love to hear from you. Send us a message and we'll respond as soon as possible.
+              </p>
+
+              <div className="space-y-8">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <MapPin className="w-6 h-6 text-fuchsia-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold mb-2">Visit Us</h3>
+                    <div className="space-y-4 text-gray-300 text-sm">
+                      <div>
+                        <strong className="text-white block mb-1">HYDERABAD:</strong>
+                        <p>HUDA Techno Enclave, 3rd Floor, Plot 20, HITEC City, Telangana - 500081, India.</p>
+                      </div>
+                      <div className="w-full h-px bg-white/10"></div>
+                      <div>
+                        <strong className="text-white block mb-1">BHIMAVARAM:</strong>
+                        <p>Rams Plaza, 3rd Floor, Opp: Hotlines Bakery, Andhra Pradesh - 534202, India.</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <Phone className="w-6 h-6 text-green-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold mb-1">Call Us</h3>
+                    <a href="tel:+917093783358" className="text-gray-300 hover:text-white hover:underline transition-colors font-mono text-lg">
+                      +91 70937 83358
+                    </a>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <Users className="w-6 h-6 text-violet-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold mb-1">Email Us</h3>
+                    <p className="text-gray-300">contact@weintegrity.com</p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-6 h-6 text-cyan-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold mb-1">Working Hours</h3>
+                    <p className="text-gray-300">Mon - Fri: 9:00 AM - 6:00 PM</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Form */}
+            <div className="bg-white rounded-3xl p-8 shadow-2xl">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Send us a Message</h3>
+              <form onSubmit={handleContactSubmit} className="space-y-6">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Name</label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={contactForm.name}
+                      onChange={handleContactChange}
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                      placeholder="Your Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+                    <input
+                      type="email"
+                      name="email"
+                      value={contactForm.email}
+                      onChange={handleContactChange}
+                      required
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                      placeholder="your@email.com"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Subject</label>
+                  <input
+                    type="text"
+                    name="subject"
+                    value={contactForm.subject}
+                    onChange={handleContactChange}
+                    required
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all"
+                    placeholder="How can we help?"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Message</label>
+                  <textarea
+                    name="message"
+                    value={contactForm.message}
+                    onChange={handleContactChange}
+                    required
+                    rows="4"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent transition-all resize-none"
+                    placeholder="Tell us more about your inquiry..."
+                  ></textarea>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={contactLoading}
+                  className="w-full py-4 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white rounded-xl font-bold text-lg hover:shadow-lg hover:shadow-violet-500/30 transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {contactLoading ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>Send Message <ArrowRight className="w-5 h-5" /></>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
         </div>
       </section>
     </div>
