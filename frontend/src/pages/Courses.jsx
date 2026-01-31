@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Search, X, Filter, BookOpen, Clock, BarChart, CheckCircle, AlertCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const Courses = () => {
   const [courses, setCourses] = useState([]);
@@ -14,14 +15,19 @@ const Courses = () => {
   const [enrollments, setEnrollments] = useState({});
   const navigate = useNavigate();
   const { addToCart, isInCart } = useCart();
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [coursesRes, enrollmentsRes] = await Promise.all([
-          axios.get('/api/courses'),
-          axios.get('/api/enrollments/my-enrollments').catch(() => ({ data: [] }))
-        ]);
+        const promises = [axios.get('/api/courses')];
+
+        // Only fetch enrollments if user is logged in
+        if (user) {
+          promises.push(axios.get('/api/enrollments/my-enrollments').catch(() => ({ data: [] })));
+        }
+
+        const [coursesRes, enrollmentsRes] = await Promise.all(promises);
 
         let courseData = [];
         if (coursesRes.data && Array.isArray(coursesRes.data)) {
@@ -35,7 +41,7 @@ const Courses = () => {
         setFilteredCourses(courseData);
 
         const enrollmentMap = {};
-        if (enrollmentsRes.data && Array.isArray(enrollmentsRes.data)) {
+        if (enrollmentsRes?.data && Array.isArray(enrollmentsRes.data)) {
           enrollmentsRes.data.forEach(enrollment => {
             const courseId = enrollment.course?._id || enrollment.course;
             enrollmentMap[courseId] = enrollment.status;
@@ -50,7 +56,7 @@ const Courses = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     let filtered = courses;
@@ -211,14 +217,20 @@ const Courses = () => {
                         </button>
                       ) : (
                         <button
-                          onClick={() => !inCart && addToCart(course)}
-                          disabled={inCart}
-                          className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-violet-200 flex items-center justify-center gap-2 ${inCart
+                          onClick={() => {
+                            if (!user) {
+                              navigate('/login', { state: { from: '/courses' } });
+                            } else if (!inCart) {
+                              addToCart(course);
+                            }
+                          }}
+                          disabled={user && inCart}
+                          className={`px-4 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-violet-200 flex items-center justify-center gap-2 ${user && inCart
                             ? 'bg-gray-100 text-gray-400 cursor-not-allowed shadow-none'
                             : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:opacity-90 hover:scale-105'
                             }`}
                         >
-                          {inCart ? 'In Cart' : 'Enroll Now'}
+                          {user && inCart ? 'In Cart' : 'Enroll Now'}
                         </button>
                       )}
                     </div>

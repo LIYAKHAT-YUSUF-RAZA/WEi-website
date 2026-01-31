@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import Footer from '../components/public/Footer.jsx';
+import { useAuth } from '../context/AuthContext.jsx';
 
 const InternshipDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [internship, setInternship] = useState(null);
   const [loading, setLoading] = useState(true);
   const [applying, setApplying] = useState(false);
@@ -28,7 +30,6 @@ const InternshipDetails = () => {
       try {
         const response = await axios.get(`/api/internships/${id}`);
         setInternship(response.data);
-        checkApplicationStatus();
       } catch (error) {
         console.error('Error fetching internship:', error);
         setMessage({ type: 'error', text: 'Internship not found' });
@@ -40,20 +41,28 @@ const InternshipDetails = () => {
     fetchInternship();
   }, [id]);
 
-  const checkApplicationStatus = async () => {
-    try {
-      const response = await axios.get('/api/applications/my-applications');
-      const applications = response.data;
-      const existingApp = applications.find(
-        app => app.type === 'internship' && app.referenceId === id
-      );
-      if (existingApp) {
-        setApplicationStatus(existingApp.status);
+  useEffect(() => {
+    const checkApplicationStatus = async () => {
+      if (!user) return;
+
+      try {
+        const response = await axios.get('/api/applications/my-applications');
+        const applications = response.data;
+        const existingApp = applications.find(
+          app => app.type === 'internship' && app.referenceId === id
+        );
+        if (existingApp) {
+          setApplicationStatus(existingApp.status);
+        }
+      } catch (error) {
+        console.error('Error checking application status:', error);
       }
-    } catch (error) {
-      console.error('Error checking application status:', error);
+    };
+
+    if (user && user.role === 'candidate') {
+      checkApplicationStatus();
     }
-  };
+  }, [id, user]);
 
   const handleChange = (e) => {
     setApplicationData({
@@ -261,10 +270,10 @@ const InternshipDetails = () => {
                   <p className="text-gray-600">{internship.department}</p>
                 </div>
                 <span className={`px-3 py-1 rounded text-sm font-medium ${internship.type === 'Remote'
-                    ? 'bg-green-100 text-green-800'
-                    : internship.type === 'On-site'
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'bg-purple-100 text-purple-800'
+                  ? 'bg-green-100 text-green-800'
+                  : internship.type === 'On-site'
+                    ? 'bg-blue-100 text-blue-800'
+                    : 'bg-purple-100 text-purple-800'
                   }`}>
                   {internship.type}
                 </span>
@@ -273,8 +282,8 @@ const InternshipDetails = () => {
               {/* Message */}
               {message.text && (
                 <div className={`mb-6 p-4 rounded ${message.type === 'success'
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-red-100 text-red-700'
                   }`}>
                   {message.text}
                 </div>
@@ -355,106 +364,136 @@ const InternshipDetails = () => {
             </div>
           </div>
 
-          {/* Application Form */}
+          {/* Application Form or Login Prompt */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow-lg p-6 sticky top-6">
-              <h3 className="text-xl font-bold mb-4">Apply for this Internship</h3>
-              <form onSubmit={handleApply} className="space-y-4">
-                {/* Resume Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Resume <span className="text-red-500">*</span>
-                  </label>
-
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Upload File</label>
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleResumeFileChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
-                      />
-                      {resumeFile && (
-                        <p className="text-sm text-green-600 mt-1">
-                          ✓ {resumeFile.name}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="text-center text-xs text-gray-500">OR</div>
-
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Paste URL</label>
-                      <input
-                        type="url"
-                        name="resumeUrl"
-                        placeholder="Google Drive, Dropbox, OneDrive link"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
-                        value={applicationData.resumeUrl}
-                        onChange={handleChange}
-                      />
-                    </div>
+              {(!user || user.role !== 'candidate') ? (
+                // Guest / Non-Candidate View
+                <div className="text-center py-8">
+                  <div className="mb-6">
+                    <svg className="w-16 h-16 mx-auto text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">
-                    💡 Accepted formats: PDF, DOC, DOCX (Max 5MB)
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">Login to Apply</h3>
+                  <p className="text-gray-600 mb-6">
+                    You need to be logged in as a candidate to apply for this internship.
                   </p>
-                </div>
-
-                {/* Cover Letter Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Cover Letter (Optional)
-                  </label>
-
                   <div className="space-y-3">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Upload File</label>
-                      <input
-                        type="file"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleCoverLetterFileChange}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
-                      />
-                      {coverLetterFile && (
-                        <p className="text-sm text-green-600 mt-1">
-                          ✓ {coverLetterFile.name}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="text-center text-xs text-gray-500">OR</div>
-
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Paste URL</label>
-                      <input
-                        type="url"
-                        name="coverLetterUrl"
-                        placeholder="Google Drive, Dropbox, OneDrive link"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
-                        value={applicationData.coverLetterUrl}
-                        onChange={handleChange}
-                      />
-                    </div>
+                    <Link
+                      to="/login"
+                      state={{ from: `/internships/${id}` }}
+                      className="block w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-lg font-bold hover:shadow-lg hover:scale-[1.02] transition-all"
+                    >
+                      Login Now
+                    </Link>
+                    <p className="text-sm text-gray-500">
+                      New here? <Link to="/register" className="text-blue-600 font-bold hover:underline">Create an account</Link>
+                    </p>
                   </div>
                 </div>
+              ) : (
+                // Candidate Application Form
+                <>
+                  <h3 className="text-xl font-bold mb-4">Apply for this Internship</h3>
+                  <form onSubmit={handleApply} className="space-y-4">
+                    {/* Resume Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Resume <span className="text-red-500">*</span>
+                      </label>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Experience
-                  </label>
-                  <textarea
-                    name="experience"
-                    rows="3"
-                    placeholder="Relevant experience"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
-                    value={applicationData.experience}
-                    onChange={handleChange}
-                  ></textarea>
-                </div>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Upload File</label>
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={handleResumeFileChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
+                          />
+                          {resumeFile && (
+                            <p className="text-sm text-green-600 mt-1">
+                              ✓ {resumeFile.name}
+                            </p>
+                          )}
+                        </div>
 
-                {getApplicationButton()}
-              </form>
+                        <div className="text-center text-xs text-gray-500">OR</div>
+
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Paste URL</label>
+                          <input
+                            type="url"
+                            name="resumeUrl"
+                            placeholder="Google Drive, Dropbox, OneDrive link"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
+                            value={applicationData.resumeUrl}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-2">
+                        💡 Accepted formats: PDF, DOC, DOCX (Max 5MB)
+                      </p>
+                    </div>
+
+                    {/* Cover Letter Upload */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Cover Letter (Optional)
+                      </label>
+
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Upload File</label>
+                          <input
+                            type="file"
+                            accept=".pdf,.doc,.docx"
+                            onChange={handleCoverLetterFileChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
+                          />
+                          {coverLetterFile && (
+                            <p className="text-sm text-green-600 mt-1">
+                              ✓ {coverLetterFile.name}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="text-center text-xs text-gray-500">OR</div>
+
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Paste URL</label>
+                          <input
+                            type="url"
+                            name="coverLetterUrl"
+                            placeholder="Google Drive, Dropbox, OneDrive link"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500 text-sm"
+                            value={applicationData.coverLetterUrl}
+                            onChange={handleChange}
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Experience
+                      </label>
+                      <textarea
+                        name="experience"
+                        rows="3"
+                        placeholder="Relevant experience"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-purple-500 focus:border-purple-500"
+                        value={applicationData.experience}
+                        onChange={handleChange}
+                      ></textarea>
+                    </div>
+
+                    {getApplicationButton()}
+                  </form>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -174,33 +174,19 @@ function App() {
               />
 
               {/* Candidate Routes */}
-              <Route path="/candidate/dashboard" element={<CandidateDashboard />} />
               <Route
-                path="/courses"
+                path="/candidate/dashboard"
                 element={
                   <PrivateRoute role="candidate">
-                    <Courses />
+                    <CandidateDashboard />
                   </PrivateRoute>
                 }
               />
+              <Route path="/courses" element={<Courses />} />
               <Route path="/courses/:id" element={<CourseDetails />} />
               <Route path="/instructor/:courseId" element={<InstructorDetails />} />
-              <Route
-                path="/internships"
-                element={
-                  <PrivateRoute role="candidate">
-                    <Internships />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/internships/:id"
-                element={
-                  <PrivateRoute role="candidate">
-                    <InternshipDetails />
-                  </PrivateRoute>
-                }
-              />
+              <Route path="/internships" element={<Internships />} />
+              <Route path="/internships/:id" element={<InternshipDetails />} />
               <Route
                 path="/my-applications"
                 element={
