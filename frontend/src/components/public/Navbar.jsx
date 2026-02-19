@@ -49,6 +49,7 @@ const Navbar = () => {
                   <Link to="/courses" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Courses</Link>
                   <Link to="/services" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Services</Link>
                   <Link to="/internships" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Internships</Link>
+                  <Link to="/contact" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Contact</Link>
                 </div>
 
                 {/* Cart Icon */}
@@ -187,6 +188,7 @@ const Navbar = () => {
                       <Link to="/courses" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Courses</Link>
                       <Link to="/services" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Services</Link>
                       <Link to="/internships" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Internships</Link>
+                      <Link to="/contact" className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all">Contact</Link>
                     </div>
 
                     {/* Cart Icon */}
@@ -313,6 +315,12 @@ const Navbar = () => {
                       className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all"
                     >
                       My Services
+                    </Link>
+                    <Link
+                      to="/contact"
+                      className="px-4 py-2 text-gray-600 hover:text-violet-600 font-medium rounded-lg hover:bg-violet-50 transition-all"
+                    >
+                      Contact
                     </Link>
                   </div>
                 )}

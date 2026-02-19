@@ -217,6 +217,15 @@ const ManagerDashboard = () => {
               <Badge count={pendingCounts.applications} />
             </Link>
           </PermissionGuard>
+
+          <PermissionGuard permission="canManageServices">
+            <Link to="/manager/services" className="p-4 bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 flex flex-col items-center justify-center gap-2 transition-all hover:-translate-y-1 group relative overflow-visible">
+              <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center group-hover:bg-indigo-100 transition-colors">
+                <Briefcase className="w-6 h-6" />
+              </div>
+              <span className="font-semibold text-gray-700">Manage Services</span>
+            </Link>
+          </PermissionGuard>
         </div>
 
         {/* Stats Section */}

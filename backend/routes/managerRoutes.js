@@ -11,6 +11,7 @@ const {
   createInternship,
   getAllCourses,
   getAllInternships,
+  getAllServices,
   updateCourse,
   updateInternship,
   deleteCourse,
@@ -47,7 +48,11 @@ router.delete('/courses/:id', auth, isManager, checkPermission('canManageCourses
 router.post('/internships', auth, isManager, checkPermission('canManageInternships'), createInternship);
 router.get('/internships', auth, isManager, checkPermission('canManageInternships'), getAllInternships);
 router.put('/internships/:id', auth, isManager, checkPermission('canManageInternships'), updateInternship);
+router.put('/internships/:id', auth, isManager, checkPermission('canManageInternships'), updateInternship);
 router.delete('/internships/:id', auth, isManager, checkPermission('canManageInternships'), deleteInternship);
+
+// Service management routes
+router.get('/services', auth, isManager, checkPermission('canManageServices'), getAllServices);
 
 // Instructor management routes
 router.get('/instructors', auth, isManager, checkPermission('canManageCourses'), getAllInstructors);

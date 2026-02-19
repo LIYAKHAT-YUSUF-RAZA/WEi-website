@@ -3,6 +3,7 @@ const NotificationSettings = require('../../models/NotificationSettings');
 const Course = require('../../models/Course');
 const Internship = require('../../models/Internship');
 const CourseEnrollment = require('../../models/CourseEnrollment');
+const Service = require('../../models/Service');
 const nodemailer = require('nodemailer');
 
 // Email transporter setup
@@ -338,6 +339,20 @@ const getAllInternships = async (req, res) => {
   }
 };
 
+// @desc    Get all services
+// @route   GET /api/manager/services
+// @access  Private (Manager)
+const getAllServices = async (req, res) => {
+  try {
+    const services = await Service.find()
+      .populate('provider', 'name email phone')
+      .sort({ createdAt: -1 });
+    res.json(services);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Update course
 // @route   PUT /api/manager/courses/:id
 // @access  Private (Manager)
@@ -474,6 +489,7 @@ module.exports = {
   createInternship,
   getAllCourses,
   getAllInternships,
+  getAllServices,
   updateCourse,
   updateInternship,
   deleteCourse,

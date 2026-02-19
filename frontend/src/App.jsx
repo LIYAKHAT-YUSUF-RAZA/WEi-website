@@ -40,8 +40,10 @@ const ManageApplications = lazy(() => import('./pages/manager/ManageApplications
 const ManageInstructors = lazy(() => import('./pages/manager/ManageInstructors.jsx'));
 const ServiceProviderDashboard = lazy(() => import('./pages/service-provider/ServiceProviderDashboard.jsx'));
 const ManageServices = lazy(() => import('./pages/service-provider/ManageServices.jsx'));
+const ManagerServices = lazy(() => import('./pages/manager/ManageServices.jsx'));
 const Services = lazy(() => import('./pages/Services.jsx'));
 const ServiceDetails = lazy(() => import('./pages/ServiceDetails.jsx'));
+const Contact = lazy(() => import('./pages/Contact.jsx'));
 
 // Loading component
 const PageLoader = () => (
@@ -162,6 +164,7 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/services" element={<Services />} />
               <Route path="/services/:id" element={<ServiceDetails />} />
+              <Route path="/contact" element={<Contact />} />
 
               {/* Smart Dashboard Route - redirects based on user role */}
               <Route
@@ -338,6 +341,14 @@ function App() {
                 element={
                   <PermissionRoute permission="canManageCourses">
                     <ManageInstructors />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/services"
+                element={
+                  <PermissionRoute permission="canManageServices">
+                    <ManagerServices />
                   </PermissionRoute>
                 }
               />
