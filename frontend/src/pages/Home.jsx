@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import {
   Search, X, ChevronLeft, ChevronRight, Briefcase, Users, Award,
-  TrendingUp, ArrowRight, Star, Clock, MapPin, DollarSign, CheckCircle, Globe, ShoppingCart, Phone
+  TrendingUp, ArrowRight, Star, Clock, MapPin, IndianRupee, CheckCircle, Globe, ShoppingCart, Phone
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
@@ -46,16 +46,20 @@ const Home = () => {
     }
   };
 
-  // ... (keeping lines 20-136 as is, implicit in this replacement if I use range correctly? No, replace_file_content replaces the whole block. I need to be careful.)
-  // I will only replace the top part and the fetchData part.
-
-  // Let's do imports first.
-
-
   // Advanced Filter States
   const [selectedCountry, setSelectedCountry] = useState('India');
   const [selectedState, setSelectedState] = useState('');
   const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
+  const [selectedPincode, setSelectedPincode] = useState('');
+  const [selectedServiceType, setSelectedServiceType] = useState('');
+
+  const serviceTypes = [
+    'Electrician', 'AC Mechanic', 'Bike Mechanic', 'Painter', 'Carpenter',
+    'Cupboard Worker', 'Cealing Worker', 'Bike Rentals', 'Car Rentals',
+    'Bus Rentals', 'Truck Rentals', 'Embroidery Worker', 'Stickering Worker',
+    'Automobiles', 'Wedding Planners'
+  ];
 
   // Mock Location Data
   const locationData = {
@@ -103,11 +107,15 @@ const Home = () => {
     setSelectedCountry(e.target.value);
     setSelectedState('');
     setSelectedDistrict('');
+    setSelectedCity('');
+    setSelectedPincode('');
   };
 
   const handleStateChange = (e) => {
     setSelectedState(e.target.value);
     setSelectedDistrict('');
+    setSelectedCity('');
+    setSelectedPincode('');
   };
   const [enrollments, setEnrollments] = useState({});
   const [applicationStatuses, setApplicationStatuses] = useState({});
@@ -145,8 +153,8 @@ const Home = () => {
   ];
 
   const careerStats = [
-    { icon: <Users className="w-8 h-8" />, number: '10k+', label: 'Students Placed', color: 'text-violet-500' },
-    { icon: <Briefcase className="w-8 h-8" />, number: '500+', label: 'Partner Companies', color: 'text-fuchsia-500' },
+    { icon: <Users className="w-8 h-8" />, number: '10+', label: 'Students Placed', color: 'text-violet-500' },
+    { icon: <Briefcase className="w-8 h-8" />, number: '5+', label: 'Partner Companies', color: 'text-fuchsia-500' },
     { icon: <Award className="w-8 h-8" />, number: '95%', label: 'Success Rate', color: 'text-cyan-500' },
     { icon: <TrendingUp className="w-8 h-8" />, number: '40%', label: 'Avg. Salary Hike', color: 'text-emerald-500' }
   ];
@@ -191,6 +199,11 @@ const Home = () => {
             role: service.category,
             name: service.provider?.name || 'Service Provider',
             location: service.location || 'India',
+            country: service.country || 'India',
+            state: service.state || '',
+            district: service.district || '',
+            city: service.city || '',
+            pincode: service.pincode || '',
             image: service.image || `https://source.unsplash.com/random/800x600?${service.category}`,
             rating: service.provider?.rating || 0,
             reviews: service.provider?.reviewsCount || 0,
@@ -405,12 +418,12 @@ const Home = () => {
               </p>
               <div className="flex gap-4">
                 <div className="flex flex-col">
-                  <span className="text-3xl font-bold text-violet-600">5k+</span>
+                  <span className="text-3xl font-bold text-violet-600">50+</span>
                   <span className="text-sm text-gray-500 font-medium">Students Trained</span>
                 </div>
                 <div className="w-px h-12 bg-gray-200 mx-2"></div>
                 <div className="flex flex-col">
-                  <span className="text-3xl font-bold text-fuchsia-600">200+</span>
+                  <span className="text-3xl font-bold text-fuchsia-600">20+</span>
                   <span className="text-sm text-gray-500 font-medium">Hiring Partners</span>
                 </div>
               </div>
@@ -439,54 +452,87 @@ const Home = () => {
             </div>
 
             {/* Advanced Filters */}
-            <div className="flex flex-col md:flex-row gap-4 flex-grow justify-end w-full lg:w-auto bg-white p-4 rounded-2xl shadow-sm border border-gray-100">
-              {/* Country Selection */}
-              <select
-                value={selectedCountry}
-                onChange={handleCountryChange}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-              >
-                <option value="">Select Country</option>
-                {Object.keys(locationData).map(country => (
-                  <option key={country} value={country}>{country}</option>
-                ))}
-              </select>
+            <div className="flex flex-col gap-4 flex-grow w-full lg:w-auto bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {/* Country Selection */}
+                <select
+                  value={selectedCountry}
+                  onChange={handleCountryChange}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                >
+                  <option value="">Select Country</option>
+                  {Object.keys(locationData).map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
 
-              {/* State Selection */}
-              <select
-                value={selectedState}
-                onChange={handleStateChange}
-                disabled={!selectedCountry}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium disabled:opacity-50"
-              >
-                <option value="">Select State</option>
-                {selectedCountry && locationData[selectedCountry] && Object.keys(locationData[selectedCountry]).map(state => (
-                  <option key={state} value={state}>{state}</option>
-                ))}
-              </select>
+                {/* State Selection */}
+                <select
+                  value={selectedState}
+                  onChange={handleStateChange}
+                  disabled={!selectedCountry}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium disabled:opacity-50"
+                >
+                  <option value="">Select State</option>
+                  {selectedCountry && locationData[selectedCountry] && Object.keys(locationData[selectedCountry]).map(state => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
 
-              {/* District Selection */}
-              <select
-                value={selectedDistrict}
-                onChange={(e) => setSelectedDistrict(e.target.value)}
-                disabled={!selectedState}
-                className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium disabled:opacity-50"
-              >
-                <option value="">Select District</option>
-                {selectedState && locationData[selectedCountry][selectedState].map(district => (
-                  <option key={district} value={district}>{district}</option>
-                ))}
-              </select>
+                {/* District Selection */}
+                <select
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  disabled={!selectedState}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium disabled:opacity-50"
+                >
+                  <option value="">Select District</option>
+                  {selectedState && locationData[selectedCountry]?.[selectedState]?.map(district => (
+                    <option key={district} value={district}>{district}</option>
+                  ))}
+                </select>
+
+                {/* City/Village */}
+                <input
+                  type="text"
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium placeholder-gray-400"
+                  placeholder="City / Village"
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                />
+
+                {/* Pincode */}
+                <input
+                  type="text"
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium placeholder-gray-400"
+                  placeholder="Pincode"
+                  value={selectedPincode}
+                  onChange={(e) => setSelectedPincode(e.target.value)}
+                  maxLength={6}
+                />
+
+                {/* Type of Service */}
+                <select
+                  value={selectedServiceType}
+                  onChange={(e) => setSelectedServiceType(e.target.value)}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                >
+                  <option value="">Type of Service</option>
+                  {serviceTypes.map(type => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
 
               {/* Fast Search */}
-              <div className="relative flex-grow md:max-w-xs">
+              <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Search className="h-4 w-4 text-gray-400" />
                 </div>
                 <input
                   type="text"
                   className="block w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm transition-all"
-                  placeholder="Fast Search (Role/Loc)..."
+                  placeholder="Fast Search (Service type / Location)..."
                   value={serviceSearch}
                   onChange={(e) => setServiceSearch(e.target.value)}
                 />
@@ -500,18 +546,39 @@ const Home = () => {
               {(() => {
                 const filteredServices = services.filter((service) => {
                   // Text Search
-                  const matchesSearch = service.role.toLowerCase().includes(serviceSearch.toLowerCase()) ||
-                    service.location.toLowerCase().includes(serviceSearch.toLowerCase());
-
-                  // Location Filter
-                  const matchesDistrict = selectedDistrict ? service.location === selectedDistrict : true;
-
-                  // State Filter: If state selected (and no district), check if services in that state
-                  const matchesState = selectedState
-                    ? (selectedDistrict ? true : locationData[selectedCountry]?.[selectedState]?.includes(service.location))
+                  const matchesSearch = serviceSearch
+                    ? (service.role.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+                      service.location.toLowerCase().includes(serviceSearch.toLowerCase()) ||
+                      (service.city || '').toLowerCase().includes(serviceSearch.toLowerCase()) ||
+                      (service.pincode || '').includes(serviceSearch))
                     : true;
 
-                  return matchesSearch && matchesDistrict && matchesState;
+                  // State Filter
+                  const matchesState = selectedState
+                    ? (service.state === selectedState || locationData[selectedCountry]?.[selectedState]?.includes(service.location))
+                    : true;
+
+                  // District Filter
+                  const matchesDistrict = selectedDistrict
+                    ? (service.district === selectedDistrict || service.location === selectedDistrict)
+                    : true;
+
+                  // City/Village Filter
+                  const matchesCity = selectedCity
+                    ? (service.city || '').toLowerCase().includes(selectedCity.toLowerCase())
+                    : true;
+
+                  // Pincode Filter
+                  const matchesPincode = selectedPincode
+                    ? (service.pincode || '').includes(selectedPincode)
+                    : true;
+
+                  // Type of Service Filter
+                  const matchesServiceType = selectedServiceType
+                    ? service.role === selectedServiceType
+                    : true;
+
+                  return matchesSearch && matchesState && matchesDistrict && matchesCity && matchesPincode && matchesServiceType;
                 });
 
                 if (filteredServices.length === 0) {
@@ -527,6 +594,9 @@ const Home = () => {
                           setServiceSearch('');
                           setSelectedState('');
                           setSelectedDistrict('');
+                          setSelectedCity('');
+                          setSelectedPincode('');
+                          setSelectedServiceType('');
                           setSelectedCountry('India');
                           setSelectedServiceRole(null);
                         }}
@@ -764,7 +834,7 @@ const Home = () => {
                           : 'bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white hover:shadow-violet-500/30 hover:shadow-lg'
                           }`}
                       >
-                        {text === 'Enroll Now' && <DollarSign className="w-4 h-4" />}
+                        {text === 'Enroll Now' && <IndianRupee className="w-4 h-4" />}
                         {text}
                       </button>
 
@@ -864,7 +934,7 @@ const Home = () => {
                     <div className="p-3 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border border-cyan-100 flex justify-between items-center group-hover:border-cyan-200 transition-colors">
                       <span className="text-xs font-bold text-gray-500 uppercase">Stipend</span>
                       <div className="flex items-center gap-1 font-bold text-gray-900">
-                        <span className="text-cyan-600"><DollarSign className="w-4 h-4" /></span>
+                        <span className="text-cyan-600"><IndianRupee className="w-4 h-4" /></span>
                         <span className="text-lg">{internship.stipend || 'Unpaid'}</span>
                       </div>
                     </div>

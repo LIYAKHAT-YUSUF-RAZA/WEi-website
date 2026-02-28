@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
   Search, X, Briefcase, User, BookOpen, Clock, Calendar,
-  MapPin, DollarSign, CheckCircle, AlertCircle, ArrowRight, BarChart, Star
+  MapPin, IndianRupee, CheckCircle, AlertCircle, ArrowRight, BarChart, Star
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
@@ -399,7 +399,7 @@ const CandidateDashboard = () => {
                           <>Already Enrolled</>
                         ) : (
                           <>
-                            <DollarSign className="w-5 h-5" /> Add to Cart
+                            <IndianRupee className="w-5 h-5" /> Add to Cart
                           </>
                         )}
                       </button>
@@ -424,7 +424,7 @@ const CandidateDashboard = () => {
                     <p className="text-gray-600 font-medium">{internship.company?.name || 'WEintegrity'}</p>
                     <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {internship.location}</span>
-                      <span className="flex items-center gap-1"><DollarSign className="w-4 h-4" /> {internship.stipend}</span>
+                      <span className="flex items-center gap-1"><IndianRupee className="w-4 h-4" /> {internship.stipend}</span>
                       <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {internship.duration}</span>
                     </div>
                   </div>

@@ -37,7 +37,7 @@ const getServiceById = async (req, res) => {
 // @access  Private (Service Provider only)
 const createService = async (req, res) => {
     try {
-        const { title, description, category, price, image, location } = req.body;
+        const { title, description, category, price, image, location, country, state, district, city, pincode } = req.body;
 
         const service = await Service.create({
             title,
@@ -46,7 +46,12 @@ const createService = async (req, res) => {
             provider: req.user._id,
             price,
             image,
-            location
+            location,
+            country,
+            state,
+            district,
+            city,
+            pincode
         });
 
         res.status(201).json(service);

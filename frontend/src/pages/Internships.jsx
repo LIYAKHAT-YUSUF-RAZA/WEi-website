@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Search, MapPin, Clock, DollarSign, Briefcase, Building, Filter, X, CheckCircle, Globe, ArrowRight } from 'lucide-react';
+import { Search, MapPin, Clock, IndianRupee, Briefcase, Building, Filter, X, CheckCircle, Globe, ArrowRight } from 'lucide-react';
 
 const Internships = () => {
   const [internships, setInternships] = useState([]);
@@ -200,7 +200,7 @@ const Internships = () => {
                     <div className="p-3 bg-gradient-to-r from-cyan-50 to-blue-50 rounded-xl border border-cyan-100 flex justify-between items-center group-hover:border-cyan-200 transition-colors">
                       <span className="text-xs font-bold text-gray-500 uppercase">Stipend</span>
                       <div className="flex items-center gap-1 font-bold text-gray-900">
-                        <span className="text-cyan-600"><DollarSign className="w-4 h-4" /></span>
+                        <span className="text-cyan-600"><IndianRupee className="w-4 h-4" /></span>
                         <span className="text-lg">{internship.stipend || 'Unpaid'}</span>
                       </div>
                     </div>

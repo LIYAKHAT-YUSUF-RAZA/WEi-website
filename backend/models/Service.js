@@ -14,25 +14,21 @@ const serviceSchema = new mongoose.Schema({
         type: String,
         required: true,
         enum: [
-            'Plumbing',
-            'Electrical',
-            'Cleaning',
-            'Painting',
-            'Carpentry',
-            'Gardening',
-            'Pest Control',
-            'Appliance Repair',
-            'Moving Services',
-            'Event Management',
-            'Beauty & Salon',
-            'Tutoring',
-            'Others',
-            'Consulting',
-            'Development',
-            'Design',
-            'Marketing',
-            'Training',
-            'Other'
+            'Electrician',
+            'AC Mechanic',
+            'Bike Mechanic',
+            'Painter',
+            'Carpenter',
+            'Cupboard Worker',
+            'Cealing Worker',
+            'Bike Rentals',
+            'Car Rentals',
+            'Bus Rentals',
+            'Truck Rentals',
+            'Embroidery Worker',
+            'Stickering Worker',
+            'Automobiles',
+            'Wedding Planners'
         ]
     },
     provider: {
@@ -50,6 +46,31 @@ const serviceSchema = new mongoose.Schema({
         default: ''
     },
     location: {
+        type: String,
+        trim: true,
+        index: true
+    },
+    country: {
+        type: String,
+        trim: true,
+        default: 'India'
+    },
+    state: {
+        type: String,
+        trim: true,
+        index: true
+    },
+    district: {
+        type: String,
+        trim: true,
+        index: true
+    },
+    city: {
+        type: String,
+        trim: true,
+        index: true
+    },
+    pincode: {
         type: String,
         trim: true,
         index: true
