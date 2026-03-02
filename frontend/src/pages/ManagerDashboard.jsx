@@ -234,6 +234,15 @@ const ManagerDashboard = () => {
               <span className="font-semibold text-gray-700">Manage Services</span>
             </Link>
           </PermissionGuard>
+
+          <PermissionGuard permission="canManageServices">
+            <Link to="/manager/service-providers" className="p-4 bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 flex flex-col items-center justify-center gap-2 transition-all hover:-translate-y-1 group relative overflow-visible">
+              <div className="w-12 h-12 bg-cyan-50 text-cyan-600 rounded-full flex items-center justify-center group-hover:bg-cyan-100 transition-colors">
+                <Users className="w-6 h-6" />
+              </div>
+              <span className="font-semibold text-gray-700">Manage Providers</span>
+            </Link>
+          </PermissionGuard>
         </div>
 
         {/* Stats Section — show skeleton while loading */}

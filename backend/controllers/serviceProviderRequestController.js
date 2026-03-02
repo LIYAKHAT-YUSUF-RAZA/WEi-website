@@ -37,15 +37,28 @@ const createRequest = async (req, res) => {
             status: 'pending'
         });
 
-        // Notify existing managers (Optional but good for UX)
-        // const existingManagers = await User.find({ role: 'manager' });
-        // if (existingManagers.length > 0) {
-        //     for (const manager of existingManagers) {
-        //         try {
-        //             // Maybe reuse manager notification or create a new one
-        //         } catch (e) {}
-        //     }
-        // }
+        // Notify existing managers
+        const existingManagers = await User.find({ role: 'manager' });
+        if (existingManagers.length > 0) {
+            for (const manager of existingManagers) {
+                try {
+                    await emailService.sendNewServiceProviderRequestNotification(manager.email, {
+                        name,
+                        email,
+                        phone
+                    });
+                } catch (e) {
+                    console.error('Failed to notify manager:', manager.email);
+                }
+            }
+        }
+
+        // Notify the requested Service Provider
+        try {
+            await emailService.sendServiceProviderRequestConfirmationToProvider(email, name);
+        } catch (e) {
+            console.error('Failed to send confirmation to provider:', email);
+        }
 
         res.status(201).json({
             message: 'Your service provider account request has been submitted. You will receive an email once it is approved.',

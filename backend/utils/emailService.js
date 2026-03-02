@@ -642,3 +642,188 @@ exports.sendCourseRequestDecision = async (candidateEmail, candidateName, course
     // Don't throw error for notification emails - log but continue
   }
 };
+
+// Send Service Provider account approval email
+exports.sendServiceProviderApprovalEmail = async (providerEmail, providerName) => {
+  console.log('🚀 Attempting to send service provider approval email to:', providerEmail);
+
+  try {
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: providerEmail,
+      subject: '🎉 Service Provider Account Approved - WEintegrity Technologies',
+      html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #10B981;">✅ Welcome to WEintegrity!</h2>
+        <p>Dear ${providerName},</p>
+        <p>Congratulations! Your Service Provider account request has been approved. You can now login to the system and start offering your services.</p>
+        
+        <div style="background-color: #EEF2FF; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Login Credentials:</h3>
+          <p><strong>Email:</strong> ${providerEmail}</p>
+          <p><strong>Password:</strong> Use the password you set during registration</p>
+        </div>
+        
+        <p>Click the button below to login to your dashboard:</p>
+        
+        <div style="margin: 30px 0; text-align: center;">
+          <a href="${process.env.FRONTEND_URL}/login" 
+             style="background-color: #4F46E5; color: white; padding: 14px 32px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">
+            Login to Dashboard
+          </a>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #E5E7EB;">
+        <p style="color: #6B7280; font-size: 14px;">
+          This is an automated email from WEintegrity Technologies. Please do not reply to this email.
+        </p>
+      </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Service Provider approval email sent successfully to ${providerEmail}`);
+    return { success: true, message: 'Email sent successfully' };
+  } catch (error) {
+    console.error('❌ Failed to send service provider approval email:', error);
+    throw new Error(`Failed to send approval email: ${error.message}`);
+  }
+};
+
+// Send Service Provider account rejection email
+exports.sendServiceProviderRejectionEmail = async (providerEmail, providerName) => {
+  console.log('🚀 Attempting to send service provider rejection email to:', providerEmail);
+
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: providerEmail,
+      subject: 'Service Provider Account Request - Status Update',
+      html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #EF4444;">Account Request Status Update</h2>
+        <p>Dear ${providerName},</p>
+        <p>Thank you for your interest in becoming a Service Provider at WEintegrity Technologies.</p>
+        
+        <div style="background-color: #FEE2E2; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0;"><strong>Status:</strong> <span style="color: #EF4444; font-weight: bold;">Request Not Approved</span></p>
+        </div>
+        
+        <p>We regret to inform you that your Service Provider account request has not been approved at this time.</p>
+        
+        <p>If you believe this is an error or would like to discuss this decision, please contact our administrator team.</p>
+        
+        <div style="margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL}/contact" 
+             style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Contact Support
+          </a>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #E5E7EB;">
+        <p style="color: #6B7280; font-size: 14px;">
+          This is an automated email from WEintegrity Technologies. Please do not reply to this email.
+        </p>
+      </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Service Provider rejection email sent successfully to ${providerEmail}`);
+    return { success: true, message: 'Email sent successfully' };
+  } catch (error) {
+    console.error('❌ Failed to send service provider rejection email:', error);
+    throw new Error(`Failed to send rejection email: ${error.message}`);
+  }
+};
+
+// Send notification to existing managers about new Service Provider request
+exports.sendNewServiceProviderRequestNotification = async (existingManagerEmail, requestDetails) => {
+  console.log('🔔 Sending new service provider request notification to:', existingManagerEmail);
+
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: existingManagerEmail,
+      subject: '🔔 New Service Provider Account Request - Action Required',
+      html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4F46E5;">New Service Provider Account Request</h2>
+        <p>Hello,</p>
+        <p>A new Service Provider account request has been submitted and requires your review:</p>
+        
+        <div style="background-color: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Applicant Details:</h3>
+          <p><strong>Name:</strong> ${requestDetails.name}</p>
+          <p><strong>Email:</strong> ${requestDetails.email}</p>
+          <p><strong>Phone:</strong> ${requestDetails.phone || 'Not provided'}</p>
+          <p><strong>Status:</strong> <span style="color: #F59E0B; font-weight: bold;">Pending Review</span></p>
+        </div>
+        
+        <p>Please review this request and approve or reject it from your manager dashboard.</p>
+        
+        <div style="margin: 30px 0;">
+          <a href="${process.env.FRONTEND_URL}/manager/requests" 
+             style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+            Review Request
+          </a>
+        </div>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #E5E7EB;">
+        <p style="color: #6B7280; font-size: 14px;">
+          This is an automated email from WEintegrity Technologies. Please do not reply to this email.
+        </p>
+      </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ New service provider request notification sent to ${existingManagerEmail}`);
+  } catch (error) {
+    console.error('❌ Failed to send new service provider request notification:', error);
+    // Don't throw error for notification emails - log but continue
+  }
+};
+
+// Send Service Provider account request confirmation email
+exports.sendServiceProviderRequestConfirmationToProvider = async (providerEmail, providerName) => {
+  console.log('🔔 Sending request confirmation email to:', providerEmail);
+
+  try {
+    const transporter = createTransporter();
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: providerEmail,
+      subject: 'Registration Request Submitted - WEintegrity Technologies',
+      html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #4F46E5;">Application Submitted Successfully</h2>
+        <p>Hello ${providerName},</p>
+        <p>Your Service Provider registration request has been successfully submitted!</p>
+        
+        <div style="background-color: #EEF2FF; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0;">Account Details:</h3>
+          <p><strong>Email:</strong> ${providerEmail}</p>
+          <p><strong>Status:</strong> <span style="color: #F59E0B;">Waiting for Manager Review</span></p>
+        </div>
+        
+        <p>Your application is currently under review by our administration team. You will receive an email notification once your application is reviewed and approved.</p>
+        
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #E5E7EB;">
+        <p style="color: #6B7280; font-size: 14px;">
+          This is an automated email from WEintegrity Technologies. Please do not reply to this email.
+        </p>
+      </div>
+      `
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`✅ Registration confirmation email sent to ${providerEmail}`);
+  } catch (error) {
+    console.error('❌ Failed to send registration confirmation email:', error);
+  }
+};

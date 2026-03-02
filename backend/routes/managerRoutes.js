@@ -25,6 +25,13 @@ const {
   updateInstructor,
   deleteInstructor
 } = require('../controllers/manager/instructorController');
+const {
+  getAllServiceProviders,
+  getServiceProvider,
+  createServiceProvider,
+  updateServiceProvider,
+  deleteServiceProvider
+} = require('../controllers/manager/serviceProviderAccountController');
 const { auth, isManager, checkPermission } = require('../middleware/auth');
 
 // Application routes
@@ -57,6 +64,13 @@ router.delete('/internships/:id', auth, isManager, checkPermission('canManageInt
 
 // Service management routes
 router.get('/services', auth, isManager, checkPermission('canManageServices'), getAllServices);
+
+// Service Provider Account management routes
+router.get('/service-providers', auth, isManager, checkPermission('canManageServices'), getAllServiceProviders);
+router.get('/service-providers/:id', auth, isManager, checkPermission('canManageServices'), getServiceProvider);
+router.post('/service-providers', auth, isManager, checkPermission('canManageServices'), createServiceProvider);
+router.put('/service-providers/:id', auth, isManager, checkPermission('canManageServices'), updateServiceProvider);
+router.delete('/service-providers/:id', auth, isManager, checkPermission('canManageServices'), deleteServiceProvider);
 
 // Instructor management routes
 router.get('/instructors', auth, isManager, checkPermission('canManageCourses'), getAllInstructors);

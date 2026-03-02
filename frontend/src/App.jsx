@@ -38,6 +38,7 @@ const ManageInternships = lazy(() => import('./pages/manager/ManageInternships.j
 const ManageEnrollments = lazy(() => import('./pages/manager/ManageEnrollments.jsx'));
 const ManageApplications = lazy(() => import('./pages/manager/ManageApplications.jsx'));
 const ManageInstructors = lazy(() => import('./pages/manager/ManageInstructors.jsx'));
+const ManageServiceProviders = lazy(() => import('./pages/manager/ManageServiceProviders.jsx'));
 const ServiceProviderDashboard = lazy(() => import('./pages/service-provider/ServiceProviderDashboard.jsx'));
 const ManageServices = lazy(() => import('./pages/service-provider/ManageServices.jsx'));
 const ManagerServices = lazy(() => import('./pages/manager/ManageServices.jsx'));
@@ -341,6 +342,14 @@ function App() {
                 element={
                   <PermissionRoute permission="canManageCourses">
                     <ManageInstructors />
+                  </PermissionRoute>
+                }
+              />
+              <Route
+                path="/manager/service-providers"
+                element={
+                  <PermissionRoute permission="canManageServices">
+                    <ManageServiceProviders />
                   </PermissionRoute>
                 }
               />

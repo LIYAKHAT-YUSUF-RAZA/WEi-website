@@ -178,8 +178,8 @@ const Home = () => {
 
         if (user && user.role === 'candidate') {
           promises.push(
-            axios.get(`/api/enrollments/my-enrollments?t=${timestamp}`),
-            axios.get(`/api/applications/my-applications?t=${timestamp}`)
+            axios.get(`/api/enrollments/my-enrollments?t=${Date.now()}`),
+            axios.get(`/api/applications/my-applications?t=${Date.now()}`)
           );
         }
 
