@@ -4,7 +4,14 @@ const Course = require('../../models/Course');
 const Internship = require('../../models/Internship');
 const CourseEnrollment = require('../../models/CourseEnrollment');
 const Service = require('../../models/Service');
+const ManagerRequest = require('../../models/ManagerRequest');
 const nodemailer = require('nodemailer');
+const dashboardCache = require('../../utils/dashboardCache');
+
+// Try to load optional models (may not exist)
+let ServiceProviderRequest, CourseRequest;
+try { ServiceProviderRequest = require('../../models/ServiceProviderRequest'); } catch (e) { }
+try { CourseRequest = require('../../models/CourseRequest'); } catch (e) { }
 
 // Email transporter setup
 const createTransporter = () => {
@@ -29,22 +36,22 @@ const getAllApplications = async (req, res) => {
 
     const applications = await Application.find(query)
       .populate('candidateId', 'name email phone')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    // Manually populate referenceId with Internship details
-    const populatedApplications = await Promise.all(
-      applications.map(async (app) => {
-        const internship = await Internship.findById(app.referenceId);
-        return {
-          ...app.toObject(),
-          referenceId: internship
-        };
-      })
-    );
+    // Batch-fetch all internships at once instead of N+1 individual queries
+    const internshipIds = [...new Set(applications.map(app => app.referenceId?.toString()).filter(Boolean))];
+    const internships = await Internship.find({ _id: { $in: internshipIds } }).lean();
+    const internshipMap = {};
+    internships.forEach(i => { internshipMap[i._id.toString()] = i; });
+
+    const populatedApplications = applications.map(app => ({
+      ...app,
+      referenceId: internshipMap[app.referenceId?.toString()] || null
+    }));
 
     res.json(populatedApplications);
   } catch (error) {
-    console.error('Error in getAllApplications:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -73,7 +80,6 @@ const updateApplicationStatus = async (req, res) => {
     application.reviewedBy = req.user._id;
 
     await application.save();
-    console.log('Application updated successfully:', application._id);
 
     // Send email to candidate using emailService (non-blocking)
     try {
@@ -87,12 +93,10 @@ const updateApplicationStatus = async (req, res) => {
       );
     } catch (emailError) {
       // Email sending failed (non-critical)
-      // Don't fail the request if email fails
     }
 
     res.json({ message: 'Application updated successfully', application });
   } catch (error) {
-    console.error('Error updating application status:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -102,7 +106,7 @@ const updateApplicationStatus = async (req, res) => {
 // @access  Private (Manager)
 const getNotificationSettings = async (req, res) => {
   try {
-    let settings = await NotificationSettings.findOne({ managerId: req.user._id });
+    let settings = await NotificationSettings.findOne({ managerId: req.user._id }).lean();
 
     if (!settings) {
       settings = await NotificationSettings.create({ managerId: req.user._id });
@@ -145,32 +149,48 @@ const updateNotificationSettings = async (req, res) => {
 // @access  Private (Manager)
 const getDashboardStats = async (req, res) => {
   try {
-    // console.log('Fetching dashboard stats...');
+    // Use aggregation pipelines instead of 13 separate countDocuments calls
+    const [appStats, enrollStats, courseCount, internshipCount] = await Promise.all([
+      // Single aggregation for all Application counts
+      Application.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+            accepted: { $sum: { $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0] } },
+            rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
+            courses: { $sum: { $cond: [{ $eq: ['$type', 'course'] }, 1, 0] } },
+            internships: { $sum: { $cond: [{ $eq: ['$type', 'internship'] }, 1, 0] } }
+          }
+        }
+      ]),
+      // Single aggregation for all CourseEnrollment counts
+      CourseEnrollment.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+            payment_pending: { $sum: { $cond: [{ $eq: ['$status', 'payment_pending'] }, 1, 0] } },
+            accepted: { $sum: { $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0] } },
+            rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+          }
+        }
+      ]),
+      // Course and Internship counts
+      Course.countDocuments({ status: 'active' }),
+      Internship.countDocuments({ status: 'open' })
+    ]);
 
-    // Get Application stats
-    const totalApplications = await Application.countDocuments();
-    const pendingApplications = await Application.countDocuments({ status: 'pending' });
-    const acceptedApplications = await Application.countDocuments({ status: 'accepted' });
-    const rejectedApplications = await Application.countDocuments({ status: 'rejected' });
-
-    // Get Enrollment stats
-    const totalEnrollments = await CourseEnrollment.countDocuments();
-    const pendingEnrollments = await CourseEnrollment.countDocuments({ status: 'pending' });
-    const paymentPendingEnrollments = await CourseEnrollment.countDocuments({ status: 'payment_pending' });
-    const acceptedEnrollments = await CourseEnrollment.countDocuments({ status: 'accepted' });
-    const rejectedEnrollments = await CourseEnrollment.countDocuments({ status: 'rejected' });
+    const app = appStats[0] || { total: 0, pending: 0, accepted: 0, rejected: 0, courses: 0, internships: 0 };
+    const enroll = enrollStats[0] || { total: 0, pending: 0, payment_pending: 0, accepted: 0, rejected: 0 };
 
     // Combined stats (Applications + Enrollments)
-    const combinedTotal = totalApplications + totalEnrollments;
-    const combinedPending = pendingApplications + pendingEnrollments + paymentPendingEnrollments;
-    const combinedAccepted = acceptedApplications + acceptedEnrollments;
-    const combinedRejected = rejectedApplications + rejectedEnrollments;
-
-    const courseApplications = await Application.countDocuments({ type: 'course' });
-    const internshipApplications = await Application.countDocuments({ type: 'internship' });
-
-    const totalCourses = await Course.countDocuments({ status: 'active' });
-    const totalInternships = await Internship.countDocuments({ status: 'open' });
+    const combinedTotal = app.total + enroll.total;
+    const combinedPending = app.pending + enroll.pending + enroll.payment_pending;
+    const combinedAccepted = app.accepted + enroll.accepted;
+    const combinedRejected = app.rejected + enroll.rejected;
 
     res.json({
       applications: {
@@ -178,14 +198,13 @@ const getDashboardStats = async (req, res) => {
         pending: combinedPending,
         accepted: combinedAccepted,
         rejected: combinedRejected,
-        courses: courseApplications,
-        internships: internshipApplications
+        courses: app.courses,
+        internships: app.internships
       },
-      courses: totalCourses,
-      internships: totalInternships
+      courses: courseCount,
+      internships: internshipCount
     });
   } catch (error) {
-    console.error('Error in getDashboardStats:', error);
     res.status(500).json({ message: error.message, stack: error.stack });
   }
 };
@@ -214,8 +233,6 @@ const createCourse = async (req, res) => {
       maxStudents,
       thumbnail
     } = req.body;
-
-    console.log('Received course data:', { price, originalPrice, discountPercentage, instructor, instructorDetails });
 
     // Validate required fields
     if (!title || !description || !category || !duration) {
@@ -247,7 +264,6 @@ const createCourse = async (req, res) => {
     });
 
     const savedCourse = await course.save();
-    console.log('Saved course:', { price: savedCourse.price, originalPrice: savedCourse.originalPrice });
     res.status(201).json({
       message: 'Course created successfully',
       course: savedCourse
@@ -320,7 +336,7 @@ const createInternship = async (req, res) => {
 // @access  Private (Manager)
 const getAllCourses = async (req, res) => {
   try {
-    const courses = await Course.find().populate('instructor').sort({ createdAt: -1 });
+    const courses = await Course.find().populate('instructor').sort({ createdAt: -1 }).lean();
     res.json(courses);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -332,7 +348,7 @@ const getAllCourses = async (req, res) => {
 // @access  Private (Manager)
 const getAllInternships = async (req, res) => {
   try {
-    const internships = await Internship.find().sort({ createdAt: -1 });
+    const internships = await Internship.find().sort({ createdAt: -1 }).lean();
     res.json(internships);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -346,7 +362,8 @@ const getAllServices = async (req, res) => {
   try {
     const services = await Service.find()
       .populate('provider', 'name email phone')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
     res.json(services);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -364,21 +381,13 @@ const updateCourse = async (req, res) => {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    console.log('Update course request body:', req.body);
-    console.log('Instructor value:', req.body.instructor);
-    console.log('InstructorDetails value:', req.body.instructorDetails);
-
     // Handle instructor assignment properly
     if (req.body.instructor && req.body.instructor.trim()) {
-      // If instructor ID is provided, convert to ObjectId and use it
       course.instructor = req.body.instructor;
       course.instructorDetails = undefined;
-      console.log('Setting instructor reference to:', req.body.instructor);
     } else if (req.body.instructorDetails && req.body.instructorDetails.name) {
-      // If manual details provided, use them and clear instructor reference
       course.instructor = null;
       course.instructorDetails = req.body.instructorDetails;
-      console.log('Setting manual instructor details:', req.body.instructorDetails);
     }
 
     // Update all other fields (excluding instructor-related fields)
@@ -390,15 +399,11 @@ const updateCourse = async (req, res) => {
     // Populate instructor before returning
     await updatedCourse.populate('instructor');
 
-    console.log('Updated course after save - instructor:', updatedCourse.instructor);
-    console.log('Updated course after save - instructorDetails:', updatedCourse.instructorDetails);
-
     res.json({
       message: 'Course updated successfully',
       course: updatedCourse
     });
   } catch (error) {
-    console.error('Update course error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -467,13 +472,153 @@ const deleteInternship = async (req, res) => {
 // @access  Private (Manager)
 const getApplicationStats = async (req, res) => {
   try {
-    const total = await Application.countDocuments({ type: 'internship' });
-    const pending = await Application.countDocuments({ type: 'internship', status: 'pending' });
-    const accepted = await Application.countDocuments({ type: 'internship', status: 'accepted' });
-    const rejected = await Application.countDocuments({ type: 'internship', status: 'rejected' });
+    // Single aggregation instead of 4 separate countDocuments calls
+    const stats = await Application.aggregate([
+      { $match: { type: 'internship' } },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+          accepted: { $sum: { $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0] } },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+        }
+      }
+    ]);
 
-    res.json({ total, pending, accepted, rejected });
+    const result = stats[0] || { total: 0, pending: 0, accepted: 0, rejected: 0 };
+    res.json(result);
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get ALL dashboard data in a single request (consolidated endpoint)
+// @route   GET /api/manager/dashboard
+// @access  Private (Manager)
+const getDashboardData = async (req, res) => {
+  try {
+    const cacheKey = `dashboard_${req.user._id}`;
+    const cached = dashboardCache.get(cacheKey);
+    if (cached) return res.json(cached);
+
+    const [
+      applications,
+      enrollments,
+      appStats,
+      enrollStats,
+      courseCount,
+      internshipCount,
+      notificationSettings,
+      managerRequests,
+      courseRequests,
+      serviceProviderRequests
+    ] = await Promise.all([
+      // 1. Applications — only fields needed for the dashboard table
+      Application.find({ type: 'internship' })
+        .populate('candidateId', 'name email')
+        .select('candidateId referenceId status type appliedAt createdAt')
+        .sort({ createdAt: -1 })
+        .limit(50)
+        .lean(),
+
+      // 2. Enrollments — only fields needed for the dashboard table
+      CourseEnrollment.find()
+        .populate('candidate', 'name email')
+        .populate('course', 'title')
+        .select('candidate course status appliedAt paymentScreenshot')
+        .sort({ appliedAt: -1 })
+        .limit(50)
+        .lean(),
+
+      // 3. Application stats aggregation
+      Application.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+            accepted: { $sum: { $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0] } },
+            rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } },
+            courses: { $sum: { $cond: [{ $eq: ['$type', 'course'] }, 1, 0] } },
+            internships: { $sum: { $cond: [{ $eq: ['$type', 'internship'] }, 1, 0] } }
+          }
+        }
+      ]),
+
+      // 4. Enrollment stats aggregation
+      CourseEnrollment.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+            payment_pending: { $sum: { $cond: [{ $eq: ['$status', 'payment_pending'] }, 1, 0] } },
+            accepted: { $sum: { $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0] } },
+            rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+          }
+        }
+      ]),
+
+      // 5 & 6. Counts
+      Course.countDocuments({ status: 'active' }),
+      Internship.countDocuments({ status: 'open' }),
+
+      // 7. Notification settings
+      NotificationSettings.findOne({ managerId: req.user._id }).lean(),
+
+      // 8. Pending counts for badges
+      ManagerRequest ? ManagerRequest.countDocuments({ status: 'pending' }) : Promise.resolve(0),
+      CourseRequest ? CourseRequest.countDocuments({ status: 'pending' }) : Promise.resolve(0),
+      ServiceProviderRequest ? ServiceProviderRequest.countDocuments({ status: 'pending' }) : Promise.resolve(0)
+    ]);
+
+    // Batch-fetch internship titles for applications
+    const internshipIds = [...new Set(applications.map(a => a.referenceId?.toString()).filter(Boolean))];
+    const internships = internshipIds.length > 0
+      ? await Internship.find({ _id: { $in: internshipIds } }).select('title').lean()
+      : [];
+    const internshipMap = {};
+    internships.forEach(i => { internshipMap[i._id.toString()] = i; });
+
+    const populatedApps = applications.map(app => ({
+      ...app,
+      referenceId: internshipMap[app.referenceId?.toString()] || null
+    }));
+
+    // Build stats
+    const app = appStats[0] || { total: 0, pending: 0, accepted: 0, rejected: 0, courses: 0, internships: 0 };
+    const enroll = enrollStats[0] || { total: 0, pending: 0, payment_pending: 0, accepted: 0, rejected: 0 };
+
+    const responseData = {
+      applications: populatedApps,
+      enrollments,
+      stats: {
+        applications: {
+          total: app.total + enroll.total,
+          pending: app.pending + enroll.pending + (enroll.payment_pending || 0),
+          accepted: app.accepted + enroll.accepted,
+          rejected: app.rejected + enroll.rejected,
+          courses: app.courses,
+          internships: app.internships
+        },
+        courses: courseCount,
+        internships: internshipCount
+      },
+      notificationSettings: notificationSettings || { emailNotifications: false },
+      pendingCounts: {
+        enrollments: enroll.pending + (enroll.payment_pending || 0),
+        applications: app.pending,
+        managerRequests,
+        courseRequests,
+        serviceProviderRequests
+      }
+    };
+
+    dashboardCache.set(cacheKey, responseData);
+    res.json(responseData);
+  } catch (error) {
+    console.error('Dashboard data error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -485,6 +630,7 @@ module.exports = {
   getNotificationSettings,
   updateNotificationSettings,
   getDashboardStats,
+  getDashboardData,
   createCourse,
   createInternship,
   getAllCourses,

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import { Search, X, Filter, MapPin, Tag, ArrowRight, User } from 'lucide-react';
+import { Search, X, Filter, MapPin, Tag, ArrowRight, User, Hash } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { lookupPincode } from '../utils/pincodeUtils.js';
 
 const Services = () => {
     const [services, setServices] = useState([]);
@@ -11,6 +12,10 @@ const Services = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [selectedLocation, setSelectedLocation] = useState('');
+    const [pincodeSearch, setPincodeSearch] = useState('');
+    const [pincodeLoading, setPincodeLoading] = useState(false);
+    const [pincodeMessage, setPincodeMessage] = useState('');
+    const [pincodeLookupData, setPincodeLookupData] = useState(null);
     const navigate = useNavigate();
 
     const categories = [
@@ -32,13 +37,30 @@ const Services = () => {
 
     useEffect(() => {
         fetchServices();
-    }, []);
+    }, [searchQuery, selectedCategory, selectedLocation, pincodeSearch, pincodeLookupData]);
 
     const fetchServices = async () => {
+        setLoading(true);
         try {
-            const response = await axios.get('/api/services');
+            const params = {};
+            if (searchQuery) params.search = searchQuery;
+            if (selectedCategory && selectedCategory !== 'All') params.category = selectedCategory;
+            if (selectedLocation) params.location = selectedLocation;
+
+            // If pincode search is active, use the exact pincode, or the district/state from lookup
+            if (pincodeSearch) {
+                params.pincode = pincodeSearch;
+                // If we also have lookup data, we could potentially use district/state if pincode alone doesn't match, 
+                // but the backend handles pincode exactly. For broader search, we can pass district/state.
+                if (pincodeLookupData) {
+                    params.district = pincodeLookupData.district;
+                    params.state = pincodeLookupData.state;
+                }
+            }
+
+            const response = await axios.get('/api/services', { params });
             setServices(response.data);
-            setFilteredServices(response.data);
+            setFilteredServices(response.data); // Keep this state for compatibility with the rest of the file
         } catch (error) {
             console.error('Error fetching services:', error);
         } finally {
@@ -46,33 +68,25 @@ const Services = () => {
         }
     };
 
-    useEffect(() => {
-        let result = services;
+    const handlePincodeSearch = async (value) => {
+        const cleaned = value.replace(/\D/g, '');
+        setPincodeSearch(cleaned);
+        setPincodeMessage('');
+        setPincodeLookupData(null);
 
-        // Search Filter
-        if (searchQuery) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(service =>
-                service.title.toLowerCase().includes(query) ||
-                service.description.toLowerCase().includes(query) ||
-                service.location?.toLowerCase().includes(query)
-            );
+        if (cleaned.length === 6 && /^\d{6}$/.test(cleaned)) {
+            setPincodeLoading(true);
+            const result = await lookupPincode(cleaned);
+            setPincodeLoading(false);
+
+            if (result.success) {
+                setPincodeLookupData(result.data);
+                setPincodeMessage(`✅ ${result.data.district}, ${result.data.state}`);
+            } else {
+                setPincodeMessage(`❌ ${result.error}`);
+            }
         }
-
-        // Category Filter
-        if (selectedCategory !== 'All') {
-            result = result.filter(service => service.category === selectedCategory);
-        }
-
-        // Location Filter (simple client-side for now)
-        if (selectedLocation) {
-            result = result.filter(service =>
-                service.location?.toLowerCase().includes(selectedLocation.toLowerCase())
-            );
-        }
-
-        setFilteredServices(result);
-    }, [searchQuery, selectedCategory, selectedLocation, services]);
+    };
 
     if (loading) {
         return (
@@ -142,7 +156,29 @@ const Services = () => {
                                 {locations.map(loc => <option key={loc} value={loc}>{loc}</option>)}
                             </select>
                         </div>
+
+                        <div className="relative flex-shrink-0 min-w-[180px]">
+                            <Hash className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+                            <input
+                                type="text"
+                                placeholder="Search by Pincode"
+                                value={pincodeSearch}
+                                onChange={(e) => handlePincodeSearch(e.target.value)}
+                                maxLength={6}
+                                className="w-full pl-10 pr-8 py-3 bg-gray-50 border-none rounded-xl focus:ring-2 focus:ring-blue-200 transition-all font-medium outline-none"
+                            />
+                            {pincodeLoading && (
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                </div>
+                            )}
+                        </div>
                     </div>
+                    {pincodeMessage && (
+                        <p className={`text-xs font-medium mt-1 px-2 ${pincodeMessage.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>
+                            {pincodeMessage}
+                        </p>
+                    )}
                 </div>
 
                 {/* Services Grid */}

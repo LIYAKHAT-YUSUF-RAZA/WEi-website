@@ -79,5 +79,9 @@ const courseEnrollmentSchema = new mongoose.Schema({
 
 // Prevent duplicate enrollment requests
 courseEnrollmentSchema.index({ candidate: 1, course: 1 }, { unique: true });
+// Performance indexes
+courseEnrollmentSchema.index({ status: 1 });
+courseEnrollmentSchema.index({ candidate: 1 });
+courseEnrollmentSchema.index({ appliedAt: -1 });
 
 module.exports = mongoose.model('CourseEnrollment', courseEnrollmentSchema);

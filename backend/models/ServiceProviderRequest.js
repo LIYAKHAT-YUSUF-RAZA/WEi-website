@@ -42,4 +42,7 @@ const serviceProviderRequestSchema = new mongoose.Schema({
     }
 });
 
+// Performance indexes
+serviceProviderRequestSchema.index({ status: 1, createdAt: -1 });
+
 module.exports = mongoose.model('ServiceProviderRequest', serviceProviderRequestSchema);

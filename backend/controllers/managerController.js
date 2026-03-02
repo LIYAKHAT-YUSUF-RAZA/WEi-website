@@ -7,8 +7,9 @@ const getAllManagers = async (req, res) => {
   try {
     const managers = await User.find({ role: 'manager' })
       .select('-password')
-      .sort({ createdAt: -1 });
-    
+      .sort({ createdAt: -1 })
+      .lean();
+
     res.json(managers);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -25,13 +26,13 @@ const updateManagerPermissions = async (req, res) => {
 
     // Prevent managers from modifying their own permissions
     if (managerId === req.user._id.toString()) {
-      return res.status(403).json({ 
-        message: 'You cannot modify your own permissions' 
+      return res.status(403).json({
+        message: 'You cannot modify your own permissions'
       });
     }
 
     const manager = await User.findById(managerId);
-    
+
     if (!manager) {
       return res.status(404).json({ message: 'Manager not found' });
     }
@@ -67,13 +68,13 @@ const deleteManager = async (req, res) => {
 
     // Prevent managers from deleting their own account
     if (managerId === req.user._id.toString()) {
-      return res.status(403).json({ 
-        message: 'You cannot delete your own account' 
+      return res.status(403).json({
+        message: 'You cannot delete your own account'
       });
     }
 
     const manager = await User.findById(managerId);
-    
+
     if (!manager) {
       return res.status(404).json({ message: 'Manager not found' });
     }
@@ -98,7 +99,7 @@ const deleteManager = async (req, res) => {
     // Delete the manager user
     await manager.deleteOne();
 
-    res.json({ 
+    res.json({
       message: `Manager ${managerName} and all their data have been deleted successfully`,
       deletedManager: {
         name: managerName,
@@ -110,7 +111,6 @@ const deleteManager = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Delete manager error:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -120,25 +120,18 @@ const deleteManager = async (req, res) => {
 // @access  Private (Manager only)
 const getManagerById = async (req, res) => {
   try {
-    console.log('🔍 Getting manager by ID:', req.params.id);
-    console.log('👤 Requesting user:', req.user?.email, 'Role:', req.user?.role);
-    
-    const manager = await User.findById(req.params.id).select('-password');
-    
+    const manager = await User.findById(req.params.id).select('-password').lean();
+
     if (!manager) {
-      console.log('❌ Manager not found');
       return res.status(404).json({ message: 'Manager not found' });
     }
 
     if (manager.role !== 'manager') {
-      console.log('❌ User is not a manager, role:', manager.role);
       return res.status(400).json({ message: 'User is not a manager' });
     }
 
-    console.log('✅ Manager found:', manager.email);
     res.json(manager);
   } catch (error) {
-    console.error('❌ Error in getManagerById:', error);
     res.status(500).json({ message: error.message });
   }
 };

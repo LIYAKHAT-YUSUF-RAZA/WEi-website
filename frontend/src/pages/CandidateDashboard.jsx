@@ -25,12 +25,11 @@ const CandidateDashboard = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const timestamp = Date.now();
         const promises = [
-          axios.get(`/api/courses?t=${timestamp}`),
-          axios.get(`/api/internships?t=${timestamp}`),
-          axios.get(`/api/enrollments/my-enrollments?t=${timestamp}`),
-          axios.get(`/api/applications/my-applications?t=${timestamp}`)
+          axios.get('/api/courses'),
+          axios.get('/api/internships'),
+          axios.get('/api/enrollments/my-enrollments'),
+          axios.get('/api/applications/my-applications')
         ];
 
         const [coursesRes, internshipsRes, enrollmentsRes, applicationsRes] = await Promise.all(promises);
@@ -126,11 +125,13 @@ const CandidateDashboard = () => {
     );
   }
 
-  // Calculate stats
-  const enrolledCount = Object.values(enrollments).filter(e => e.status === 'accepted').length;
-  const applicationCount = Object.keys(applicationStatuses).length;
-
-
+  // Calculate stats using useMemo
+  const stats = useMemo(() => {
+    return {
+      enrolledCount: Object.values(enrollments).filter(e => e.status === 'accepted').length,
+      applicationCount: Object.keys(applicationStatuses).length
+    };
+  }, [enrollments, applicationStatuses]);
   return (
     <div className="min-h-screen bg-gray-50 font-body pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-24">
@@ -147,7 +148,7 @@ const CandidateDashboard = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-gray-500 text-sm font-medium uppercase">Enrolled Courses</p>
-                <p className="text-3xl font-bold text-gray-900">{enrolledCount}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.enrolledCount}</p>
               </div>
               <div className="bg-blue-100 p-3 rounded-full text-blue-600">
                 <BookOpen className="w-6 h-6" />
@@ -159,7 +160,7 @@ const CandidateDashboard = () => {
             <div className="flex justify-between items-center">
               <div>
                 <p className="text-gray-500 text-sm font-medium uppercase">Applications</p>
-                <p className="text-3xl font-bold text-gray-900">{applicationCount}</p>
+                <p className="text-3xl font-bold text-gray-900">{stats.applicationCount}</p>
               </div>
               <div className="bg-green-100 p-3 rounded-full text-green-600">
                 <Briefcase className="w-6 h-6" />
@@ -293,7 +294,7 @@ const CandidateDashboard = () => {
                     <div className="relative h-52 overflow-hidden bg-gray-100">
                       <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors z-10" />
                       <img
-                        src={course.thumbnail || 'https://via.placeholder.com/400x200'}
+                        src={course.thumbnail || 'https://placehold.co/400x200?text=No+Image'}
                         alt={course.title}
                         className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
                       />

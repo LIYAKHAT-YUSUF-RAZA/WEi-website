@@ -5,7 +5,38 @@ const Service = require('../models/Service');
 // @access  Public
 const getServices = async (req, res) => {
     try {
-        const services = await Service.find({ status: 'active' })
+        const { search, category, location, country, state, district, city, pincode } = req.query;
+        let query = { status: 'active' };
+
+        // 1. Text Search Filter (matches title, description, category, location)
+        if (search) {
+            const searchRegex = new RegExp(search, 'i');
+            query.$or = [
+                { title: searchRegex },
+                { description: searchRegex },
+                { category: searchRegex },
+                { location: searchRegex }
+            ];
+        }
+
+        // 2. Category Filter
+        if (category && category !== 'All') {
+            query.category = category;
+        }
+
+        // 3. Exact Location Filters
+        if (country) query.country = country;
+        if (state) query.state = state;
+        if (district) query.district = district;
+        if (city) query.city = city;
+        if (pincode) query.pincode = pincode;
+
+        // 4. Loose Location Filter (from simple search)
+        if (location) {
+            query.location = new RegExp(location, 'i');
+        }
+
+        const services = await Service.find(query)
             .populate('provider', 'name rating reviewsCount profilePicture')
             .sort({ createdAt: -1 })
             .lean();

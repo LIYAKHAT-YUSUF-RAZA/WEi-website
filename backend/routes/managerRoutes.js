@@ -7,6 +7,7 @@ const {
   getNotificationSettings,
   updateNotificationSettings,
   getDashboardStats,
+  getDashboardData,
   createCourse,
   createInternship,
   getAllCourses,
@@ -37,6 +38,9 @@ router.put('/notification-settings', auth, isManager, checkPermission('canManage
 
 // Dashboard stats
 router.get('/stats', auth, isManager, getDashboardStats);
+
+// Consolidated dashboard data (single endpoint for entire dashboard page)
+router.get('/dashboard', auth, isManager, getDashboardData);
 
 // Course management routes
 router.post('/courses', auth, isManager, checkPermission('canManageCourses'), createCourse);

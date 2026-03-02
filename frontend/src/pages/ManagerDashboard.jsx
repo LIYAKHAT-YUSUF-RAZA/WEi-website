@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import PermissionGuard from '../components/PermissionGuard.jsx';
@@ -18,6 +18,22 @@ const Badge = ({ count }) => {
   );
 };
 
+/* ── Skeleton shimmer placeholder ──────────────────────── */
+const SkeletonCard = () => (
+  <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 animate-pulse">
+    <div className="h-3 bg-gray-200 rounded w-24 mb-3"></div>
+    <div className="h-8 bg-gray-200 rounded w-16"></div>
+  </div>
+);
+
+const SkeletonRow = () => (
+  <tr className="border-b border-gray-50">
+    {[...Array(7)].map((_, i) => (
+      <td key={i} className="px-6 py-4"><div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: `${50 + Math.random() * 50}%` }}></div></td>
+    ))}
+  </tr>
+);
+
 const ManagerDashboard = () => {
   const { hasPermission } = useAuth();
   const [applications, setApplications] = useState([]);
@@ -29,47 +45,41 @@ const ManagerDashboard = () => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showScreenshotModal, setShowScreenshotModal] = useState(false);
   const [selectedScreenshot, setSelectedScreenshot] = useState(null);
-
   const [pendingCounts, setPendingCounts] = useState({
     enrollments: 0,
     applications: 0,
     managerRequests: 0,
-    courseRequests: 0
+    courseRequests: 0,
+    serviceProviderRequests: 0
   });
 
+  // Cache ref — show stale data instantly on re-visits
+  const cacheRef = useRef(null);
+
   useEffect(() => {
+    // Show cached data instantly if available
+    if (cacheRef.current) {
+      applyData(cacheRef.current);
+      setLoading(false);
+    }
     fetchData();
   }, []);
 
+  const applyData = (data) => {
+    setApplications(data.applications || []);
+    setEnrollments(data.enrollments || []);
+    setStats(data.stats || null);
+    setNotificationSettings(data.notificationSettings || null);
+    setPendingCounts(data.pendingCounts || {
+      enrollments: 0, applications: 0, managerRequests: 0, courseRequests: 0, serviceProviderRequests: 0
+    });
+  };
+
   const fetchData = async () => {
     try {
-      const [appsRes, enrollmentsRes, statsRes, settingsRes, requestsRes, courseRequestsRes, serviceRequestsRes] = await Promise.all([
-        axios.get('/api/manager/applications'),
-        axios.get('/api/manager/enrollments'),
-        axios.get('/api/manager/stats'),
-        axios.get('/api/manager/notification-settings'),
-        axios.get('/api/manager-requests').catch(() => ({ data: [] })),
-        axios.get('/api/course-requests').catch(() => ({ data: [] })),
-        axios.get('/api/service-provider-requests').catch(() => ({ data: [] }))
-      ]);
-
-      // Robust data handling
-      let appsData = appsRes.data?.applications || appsRes.data?.data || (Array.isArray(appsRes.data) ? appsRes.data : []);
-      setApplications(appsData);
-
-      let enrollsData = enrollmentsRes.data?.enrollments || enrollmentsRes.data?.data || (Array.isArray(enrollmentsRes.data) ? enrollmentsRes.data : []);
-      setEnrollments(enrollsData);
-
-      setStats(statsRes.data);
-      setNotificationSettings(settingsRes.data);
-
-      setPendingCounts({
-        enrollments: enrollsData.filter(e => e.status === 'pending').length,
-        applications: appsData.filter(a => a.status === 'pending').length,
-        managerRequests: (requestsRes.data || []).filter(r => r.status === 'pending').length,
-        courseRequests: (courseRequestsRes.data?.courseRequests || []).filter(r => r.status === 'pending').length,
-        serviceProviderRequests: (serviceRequestsRes.data || []).filter(r => r.status === 'pending').length
-      });
+      const { data } = await axios.get('/api/manager/dashboard');
+      cacheRef.current = data;
+      applyData(data);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -103,28 +113,26 @@ const ManagerDashboard = () => {
     }
   };
 
-  const filteredItems = [
-    ...applications.map(app => ({ ...app, itemType: 'application' })),
-    ...enrollments.filter(e => e.candidate && e.course).map(e => ({
-      ...e, itemType: 'enrollment', type: 'course', appliedFor: e.course?.title, date: e.appliedAt, candidate: e.candidate
-    }))
-  ].filter(item => {
-    if (filter.type !== 'all' && item.type !== filter.type) return false;
-    if (filter.status !== 'all' && item.status !== filter.status) return false;
-    return true;
-  }).sort((a, b) => new Date(b.date || b.appliedAt) - new Date(a.date || a.appliedAt));
-
-  if (loading) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="animate-spin-slow rounded-full h-16 w-16 border-t-2 border-b-2 border-violet-600"></div>
-    </div>
-  );
+  // Memoize filtered/sorted items — only recomputes when dependencies change
+  const filteredItems = useMemo(() => {
+    const combined = [
+      ...applications.map(app => ({ ...app, itemType: 'application' })),
+      ...enrollments.filter(e => e.candidate && e.course).map(e => ({
+        ...e, itemType: 'enrollment', type: 'course', appliedFor: e.course?.title, date: e.appliedAt, candidate: e.candidate
+      }))
+    ];
+    return combined.filter(item => {
+      if (filter.type !== 'all' && item.type !== filter.type) return false;
+      if (filter.status !== 'all' && item.status !== filter.status) return false;
+      return true;
+    }).sort((a, b) => new Date(b.date || b.appliedAt) - new Date(a.date || a.appliedAt));
+  }, [applications, enrollments, filter]);
 
   return (
     <div className="min-h-screen bg-gray-50 font-body pb-20">
       <div className="pt-32 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-        {/* Header Section */}
+        {/* Header Section — always visible immediately */}
         <div className="mb-10 animate-fade-in-up">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
@@ -137,7 +145,7 @@ const ManagerDashboard = () => {
             <button
               onClick={async () => {
                 try {
-                  const newSettings = { ...notificationSettings, emailNotifications: !notificationSettings.emailNotifications };
+                  const newSettings = { ...notificationSettings, emailNotifications: !notificationSettings?.emailNotifications };
                   await axios.put('/api/manager/notification-settings', newSettings);
                   setNotificationSettings(newSettings);
                   showToast('success', `Notifications ${newSettings.emailNotifications ? 'ON' : 'OFF'}`);
@@ -152,7 +160,7 @@ const ManagerDashboard = () => {
           </div>
         </div>
 
-        {/* Action Buttons Grid */}
+        {/* Action Buttons Grid — always visible immediately */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10 animate-fade-in-up delay-100">
           <PermissionGuard permission="canManageCourses">
             <Link to="/manager/add-course" className="p-4 bg-white rounded-xl shadow-sm hover:shadow-md border border-gray-100 flex flex-col items-center justify-center gap-2 transition-all hover:-translate-y-1 group">
@@ -228,8 +236,13 @@ const ManagerDashboard = () => {
           </PermissionGuard>
         </div>
 
-        {/* Stats Section */}
-        {stats && (
+        {/* Stats Section — show skeleton while loading */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 animate-fade-in-up delay-200">
+            <div className="bg-gradient-to-br from-violet-500 to-fuchsia-600 p-6 rounded-2xl shadow-lg animate-pulse"><div className="h-3 bg-white/30 rounded w-24 mb-3"></div><div className="h-8 bg-white/30 rounded w-16"></div></div>
+            <SkeletonCard /><SkeletonCard /><SkeletonCard />
+          </div>
+        ) : stats && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10 animate-fade-in-up delay-200">
             <div className="bg-gradient-to-br from-violet-500 to-fuchsia-600 p-6 rounded-2xl text-white shadow-lg">
               <p className="text-white/80 text-sm font-medium mb-1">Total Applications</p>
@@ -294,88 +307,93 @@ const ManagerDashboard = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filteredItems.map(item => (
-                  <tr key={item._id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center font-bold text-sm">
-                          {(item.itemType === 'application' ? item.candidateDetails?.name : item.candidate?.name)?.[0] || 'U'}
-                        </div>
-                        <div>
-                          <div className="font-semibold text-gray-900">
-                            {item.itemType === 'application' ? item.candidateDetails?.name : item.candidate?.name}
+                {loading ? (
+                  // Skeleton rows while loading
+                  [...Array(5)].map((_, i) => <SkeletonRow key={i} />)
+                ) : (
+                  filteredItems.map(item => (
+                    <tr key={item._id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-violet-100 text-violet-600 flex items-center justify-center font-bold text-sm">
+                            {(item.itemType === 'application' ? item.candidateDetails?.name || item.candidateId?.name : item.candidate?.name)?.[0] || 'U'}
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {item.itemType === 'application' ? item.candidateDetails?.email : item.candidate?.email}
+                          <div>
+                            <div className="font-semibold text-gray-900">
+                              {item.itemType === 'application' ? item.candidateDetails?.name || item.candidateId?.name : item.candidate?.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {item.itemType === 'application' ? item.candidateDetails?.email || item.candidateId?.email : item.candidate?.email}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${item.type === 'course' ? 'bg-blue-50 text-blue-600' : 'bg-fuchsia-50 text-fuchsia-600'
-                        }`}>
-                        {item.type}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-700">
-                      {item.itemType === 'application' ? item.referenceId?.title : item.appliedFor}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {new Date(item.itemType === 'application' ? item.appliedAt : item.date).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase border ${item.status === 'accepted' ? 'bg-green-50 text-green-600 border-green-100' :
-                        item.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-100' :
-                          'bg-yellow-50 text-yellow-600 border-yellow-100'
-                        }`}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      {item.itemType === 'enrollment' && item.paymentScreenshot ? (
-                        <button
-                          onClick={() => { setSelectedScreenshot(item.paymentScreenshot); setShowScreenshotModal(true); }}
-                          className="p-2 text-gray-400 hover:text-violet-600 transition-colors inline-flex"
-                          title="View Receipt"
-                        >
-                          <Camera className="w-5 h-5" />
-                        </button>
-                      ) : (
-                        <span className="text-gray-300">-</span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-
-                        {item.status === 'pending' && (
-                          <>
-                            <button
-                              onClick={() => item.itemType === 'application'
-                                ? handleUpdateStatus(item._id, 'accepted')
-                                : handleEnrollmentAction(item._id, 'accept', 'Message for candidate (optional):')}
-                              className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
-                              title="Accept"
-                            >
-                              <Check className="w-5 h-5" />
-                            </button>
-                            <button
-                              onClick={() => item.itemType === 'application'
-                                ? handleUpdateStatus(item._id, 'rejected')
-                                : handleEnrollmentAction(item._id, 'reject', 'Reason for rejection (optional):')}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Reject"
-                            >
-                              <X className="w-5 h-5" />
-                            </button>
-                          </>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase ${item.type === 'course' ? 'bg-blue-50 text-blue-600' : 'bg-fuchsia-50 text-fuchsia-600'
+                          }`}>
+                          {item.type}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-medium text-gray-700">
+                        {item.itemType === 'application' ? item.referenceId?.title : item.appliedFor}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-500">
+                        {new Date(item.itemType === 'application' ? item.appliedAt : item.date).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase border ${item.status === 'accepted' ? 'bg-green-50 text-green-600 border-green-100' :
+                          item.status === 'rejected' ? 'bg-red-50 text-red-600 border-red-100' :
+                            'bg-yellow-50 text-yellow-600 border-yellow-100'
+                          }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        {item.itemType === 'enrollment' && item.paymentScreenshot ? (
+                          <button
+                            onClick={() => { setSelectedScreenshot(item.paymentScreenshot); setShowScreenshotModal(true); }}
+                            className="p-2 text-gray-400 hover:text-violet-600 transition-colors inline-flex"
+                            title="View Receipt"
+                          >
+                            <Camera className="w-5 h-5" />
+                          </button>
+                        ) : (
+                          <span className="text-gray-300">-</span>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex items-center justify-end gap-2">
+
+                          {item.status === 'pending' && (
+                            <>
+                              <button
+                                onClick={() => item.itemType === 'application'
+                                  ? handleUpdateStatus(item._id, 'accepted')
+                                  : handleEnrollmentAction(item._id, 'accept', 'Message for candidate (optional):')}
+                                className="p-2 text-green-500 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Accept"
+                              >
+                                <Check className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => item.itemType === 'application'
+                                  ? handleUpdateStatus(item._id, 'rejected')
+                                  : handleEnrollmentAction(item._id, 'reject', 'Reason for rejection (optional):')}
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                title="Reject"
+                              >
+                                <X className="w-5 h-5" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
-            {filteredItems.length === 0 && (
+            {!loading && filteredItems.length === 0 && (
               <div className="p-12 text-center text-gray-500">
                 <p>No records found matching your filters.</p>
               </div>

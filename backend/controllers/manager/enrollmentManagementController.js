@@ -5,7 +5,7 @@ const { sendEnrollmentDecisionToCandidate } = require('../../utils/emailService'
 exports.getAllEnrollments = async (req, res) => {
   try {
     const { status } = req.query;
-    
+
     const filter = {};
     if (status && ['pending', 'accepted', 'rejected'].includes(status)) {
       filter.status = status;
@@ -16,7 +16,8 @@ exports.getAllEnrollments = async (req, res) => {
       .populate('candidate', 'name email phone')
       .populate('course', 'title description category level duration price originalPrice')
       .populate('respondedBy', 'name email')
-      .sort('-appliedAt');
+      .sort('-appliedAt')
+      .lean();
 
     res.json(enrollments);
   } catch (error) {
@@ -158,17 +159,21 @@ exports.unenrollCandidate = async (req, res) => {
 // Get enrollment statistics
 exports.getEnrollmentStats = async (req, res) => {
   try {
-    const pending = await CourseEnrollment.countDocuments({ status: 'pending' });
-    const accepted = await CourseEnrollment.countDocuments({ status: 'accepted' });
-    const rejected = await CourseEnrollment.countDocuments({ status: 'rejected' });
-    const total = pending + accepted + rejected;
+    // Single aggregation instead of 3 separate countDocuments
+    const stats = await CourseEnrollment.aggregate([
+      {
+        $group: {
+          _id: null,
+          total: { $sum: 1 },
+          pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+          accepted: { $sum: { $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0] } },
+          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+        }
+      }
+    ]);
 
-    res.json({
-      total,
-      pending,
-      accepted,
-      rejected
-    });
+    const result = stats[0] || { total: 0, pending: 0, accepted: 0, rejected: 0 };
+    res.json(result);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching enrollment statistics', error: error.message });
   }

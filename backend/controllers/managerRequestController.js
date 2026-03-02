@@ -20,7 +20,6 @@ const createManagerRequest = async (req, res) => {
     const requestExists = await ManagerRequest.findOne({ email });
     if (requestExists) {
       if (requestExists.status === 'pending') {
-        console.log('❌ Pending request already exists:', email);
         return res.status(400).json({ message: 'Your request is already pending approval' });
       }
       if (requestExists.status === 'rejected') {
@@ -40,11 +39,8 @@ const createManagerRequest = async (req, res) => {
       phone,
       status: 'pending'
     });
-    console.log('✅ Manager request created:', managerRequest._id);
+    const existingManagers = await User.find({ role: 'manager' }).select('email').lean();
 
-    const existingManagers = await User.find({ role: 'manager' });
-    console.log(`📧 Found ${existingManagers.length} existing managers to notify`);
-    
     if (existingManagers.length > 0) {
       for (const manager of existingManagers) {
         try {
@@ -67,11 +63,11 @@ const createManagerRequest = async (req, res) => {
   } catch (error) {
     // Handle MongoDB duplicate key error
     if (error.code === 11000) {
-      return res.status(400).json({ 
-        message: 'A manager request with this email already exists. Please use a different email or contact support.' 
+      return res.status(400).json({
+        message: 'A manager request with this email already exists. Please use a different email or contact support.'
       });
     }
-    
+
     res.status(500).json({ message: error.message });
   }
 };
@@ -81,8 +77,8 @@ const createManagerRequest = async (req, res) => {
 // @access  Private (Manager only)
 const getManagerRequests = async (req, res) => {
   try {
-    const requests = await ManagerRequest.find().sort({ createdAt: -1 });
-    
+    const requests = await ManagerRequest.find().sort({ createdAt: -1 }).lean();
+
     res.json(requests);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -98,7 +94,7 @@ const updateManagerRequest = async (req, res) => {
     const requestId = req.params.id;
 
     const managerRequest = await ManagerRequest.findById(requestId);
-    
+
     if (!managerRequest) {
       return res.status(404).json({ message: 'Manager request not found' });
     }
@@ -109,10 +105,10 @@ const updateManagerRequest = async (req, res) => {
 
     managerRequest.status = status;
     managerRequest.approvedBy = req.user._id;
-    
+
     if (status === 'approved') {
       managerRequest.approvedAt = Date.now();
-      
+
       // Update permissions
       if (permissions) {
         managerRequest.permissions = permissions;
@@ -130,34 +126,27 @@ const updateManagerRequest = async (req, res) => {
         profilePicture: '',
         createdAt: new Date()
       };
-      
+
       await User.collection.insertOne(userDoc);
       const newManager = await User.findOne({ email: managerRequest.email });
-      
-      console.log(`\ud83d\udc64 New manager account created: ${managerRequest.email}`);
+
+
 
       // Send approval email to new manager
       try {
-        console.log('\ud83d\udce7 Sending approval email...');
+
         const emailResult = await emailService.sendManagerAccountApprovalEmail(
           managerRequest.email,
           managerRequest.name,
           permissions || managerRequest.permissions
         );
-        console.log(`\u2705 Email service response:`, emailResult);
       } catch (emailError) {
-        console.error('\u274c EMAIL SENDING FAILED:', emailError);
-        console.error('\u274c Error stack:', emailError.stack);
-        console.error('\u274c Environment check:', {
-          EMAIL_USER: process.env.EMAIL_USER ? 'Set' : 'NOT SET',
-          EMAIL_PASS: process.env.EMAIL_PASS ? 'Set (length: ' + process.env.EMAIL_PASS.length + ')' : 'NOT SET'
-        });
         // Continue even if email fails - account is already created
       }
 
       await managerRequest.save();
 
-      res.json({ 
+      res.json({
         message: 'Manager request approved and account created',
         manager: {
           _id: newManager._id,
@@ -171,15 +160,14 @@ const updateManagerRequest = async (req, res) => {
 
       // Send rejection email to the applicant
       try {
-        console.log('\ud83d\udce7 Sending rejection email...');
+
         await emailService.sendManagerAccountRejectionEmail(
           managerRequest.email,
           managerRequest.name
         );
-        console.log(`\u2705 Successfully sent rejection email to ${managerRequest.email}`);
+
       } catch (emailError) {
-        console.error('\u274c Failed to send manager rejection email:', emailError);
-        console.error('\u274c Error stack:', emailError.stack);
+
         // Continue even if email fails
       }
 
@@ -197,7 +185,7 @@ const updateManagerRequest = async (req, res) => {
 const deleteManagerRequest = async (req, res) => {
   try {
     const managerRequest = await ManagerRequest.findById(req.params.id);
-    
+
     if (!managerRequest) {
       return res.status(404).json({ message: 'Manager request not found' });
     }

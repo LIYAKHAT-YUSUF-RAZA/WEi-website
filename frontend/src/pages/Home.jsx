@@ -8,6 +8,8 @@ import {
 import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { featuredInternships } from '../data/featuredData.js';
+import { locationData } from '../data/locationData.js';
+import { lookupPincode } from '../utils/pincodeUtils.js';
 
 const Home = () => {
   const [companyInfo, setCompanyInfo] = useState(null);
@@ -54,6 +56,11 @@ const Home = () => {
   const [selectedPincode, setSelectedPincode] = useState('');
   const [selectedServiceType, setSelectedServiceType] = useState('');
 
+  // Pincode lookup states
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeMessage, setPincodeMessage] = useState('');
+  const [pincodePostOffices, setPincodePostOffices] = useState([]);
+
   const serviceTypes = [
     'Electrician', 'AC Mechanic', 'Bike Mechanic', 'Painter', 'Carpenter',
     'Cupboard Worker', 'Cealing Worker', 'Bike Rentals', 'Car Rentals',
@@ -61,47 +68,8 @@ const Home = () => {
     'Automobiles', 'Wedding Planners'
   ];
 
-  // Mock Location Data
-  const locationData = {
-    'India': {
-      'Andhra Pradesh': ['Alluri Sitharama Raju', 'Anakapalli', 'Anantapur', 'Annamayya', 'Bapatla', 'Chittoor', 'Dr. B. R. Ambedkar Konaseema', 'East Godavari', 'Eluru', 'Guntur', 'Kakinada', 'Krishna', 'Kurnool', 'Nandyal', 'NTR', 'Palnadu', 'Parvathipuram Manyam', 'Prakasam', 'Sri Potti Sriramulu Nellore', 'Sri Sathya Sai', 'Srikakulam', 'Tirupati', 'Visakhapatnam', 'Vizianagaram', 'West Godavari', 'YSR', 'Vijayawada', 'Bhimavaram'],
-      'Arunachal Pradesh': ['Anjaw', 'Changlang', 'Dibang Valley', 'East Kameng', 'East Siang', 'Kamle', 'Kra Daadi', 'Kurung Kumey', 'Lepa Rada', 'Lohit', 'Longding', 'Lower Dibang Valley', 'Lower Siang', 'Lower Subansiri', 'Namsai', 'Pakke Kessang', 'Papum Pare', 'Shi Yomi', 'Siang', 'Tawang', 'Tirap', 'Upper Siang', 'Upper Subansiri', 'West Kameng', 'West Siang'],
-      'Assam': ['Baksa', 'Barpeta', 'Biswanath', 'Bongaigaon', 'Cachar', 'Charaideo', 'Chirang', 'Darrang', 'Dhemaji', 'Dhubri', 'Dibrugarh', 'Dima Hasao', 'Goalpara', 'Golaghat', 'Hailakandi', 'Hojai', 'Jorhat', 'Kamrup', 'Kamrup Metropolitan', 'Karbi Anglong', 'Karimganj', 'Kokrajhar', 'Lakhimpur', 'Majuli', 'Morigaon', 'Nagaon', 'Nalbari', 'Sivasagar', 'Sonitpur', 'South Salmara-Mankachar', 'Tinsukia', 'Udalguri', 'West Karbi Anglong'],
-      'Bihar': ['Araria', 'Arwal', 'Aurangabad', 'Banka', 'Begusarai', 'Bhagalpur', 'Bhojpur', 'Buxar', 'Darbhanga', 'East Champaran', 'Gaya', 'Gopalganj', 'Jamui', 'Jehanabad', 'Kaimur', 'Katihar', 'Khagaria', 'Kishanganj', 'Lakhisarai', 'Madhepura', 'Madhubani', 'Munger', 'Muzaffarpur', 'Nalanda', 'Nawada', 'Patna', 'Purnia', 'Rohtas', 'Saharsa', 'Samastipur', 'Saran', 'Sheikhpura', 'Sheohar', 'Sitamarhi', 'Siwan', 'Supaul', 'Vaishali', 'West Champaran'],
-      'Chhattisgarh': ['Balod', 'Baloda Bazar', 'Balrampur', 'Bastar', 'Bemetara', 'Bijapur', 'Bilaspur', 'Dantewada', 'Dhamtari', 'Durg', 'Gariaband', 'Gaurela-Pendra-Marwahi', 'Janjgir-Champa', 'Jashpur', 'Kabirdham', 'Kanker', 'Kondagaon', 'Korba', 'Koriya', 'Mahasamund', 'Manendragarh-Chirmiri-Bharatpur', 'Mohla-Manpur-Ambagarh Chowki', 'Mungeli', 'Narayanpur', 'Raigarh', 'Raipur', 'Rajnandgaon', 'Sarangarh-Bilaigarh', 'Shakti', 'Sukma', 'Surajpur', 'Surguja'],
-      'Goa': ['North Goa', 'South Goa', 'Goa'],
-      'Gujarat': ['Ahmedabad', 'Amreli', 'Anand', 'Aravalli', 'Banaskantha', 'Bharuch', 'Bhavnagar', 'Botad', 'Chhota Udaipur', 'Dahod', 'Dang', 'Devbhoomi Dwarka', 'Gandhinagar', 'Gir Somnath', 'Jamnagar', 'Junagadh', 'Kheda', 'Kutch', 'Mahisagar', 'Mehsana', 'Morbi', 'Narmada', 'Navsari', 'Panchmahal', 'Patan', 'Porbandar', 'Rajkot', 'Sabarkantha', 'Surat', 'Surendranagar', 'Tapi', 'Vadodara', 'Valsad'],
-      'Haryana': ['Ambala', 'Bhiwani', 'Charkhi Dadri', 'Faridabad', 'Fatehabad', 'Gurugram', 'Hisar', 'Jhajjar', 'Jind', 'Kaithal', 'Karnal', 'Kurukshetra', 'Mahendragarh', 'Nuh', 'Palwal', 'Panchkula', 'Panipat', 'Rewari', 'Rohtak', 'Sirsa', 'Sonipat', 'Yamunanagar'],
-      'Himachal Pradesh': ['Bilaspur', 'Chamba', 'Hamirpur', 'Kangra', 'Kinnaur', 'Kullu', 'Lahaul and Spiti', 'Mandi', 'Shimla', 'Sirmaur', 'Solan', 'Una'],
-      'Jharkhand': ['Bokaro', 'Chatra', 'Deoghar', 'Dhanbad', 'Dumka', 'East Singhbhum', 'Garhwa', 'Giridih', 'Godda', 'Gumla', 'Hazaribagh', 'Jamtara', 'Khunti', 'Koderma', 'Latehar', 'Lohardaga', 'Pakur', 'Palamu', 'Ramgarh', 'Ranchi', 'Sahibganj', 'Seraikela Kharsawan', 'Simdega', 'West Singhbhum'],
-      'Karnataka': ['Bagalkot', 'Bangalore Rural', 'Bangalore Urban', 'Belgaum', 'Bellary', 'Bidar', 'Chamarajanagar', 'Chikkaballapur', 'Chikkamagaluru', 'Chitradurga', 'Dakshina Kannada', 'Davangere', 'Dharwad', 'Gadag', 'Gulbarga', 'Hassan', 'Haveri', 'Kodagu', 'Kolar', 'Koppal', 'Mandya', 'Mysore', 'Raichur', 'Ramanagara', 'Shimoga', 'Tumkur', 'Udupi', 'Uttara Kannada', 'Vijayanagara', 'Vijayapura', 'Yadgir', 'Bangalore'],
-      'Kerala': ['Alappuzha', 'Ernakulam', 'Idukki', 'Kannur', 'Kasaragod', 'Kollam', 'Kottayam', 'Kozhikode', 'Malappuram', 'Palakkad', 'Pathanamthitta', 'Thiruvananthapuram', 'Thrissur', 'Wayanad'],
-      'Madhya Pradesh': ['Agar Malwa', 'Alirajpur', 'Anuppur', 'Ashoknagar', 'Balaghat', 'Barwani', 'Betul', 'Bhind', 'Bhopal', 'Burhanpur', 'Chhatarpur', 'Chhindwara', 'Damoh', 'Datia', 'Dewas', 'Dhar', 'Dindori', 'Guna', 'Gwalior', 'Harda', 'Hoshangabad', 'Indore', 'Jabalpur', 'Jhabua', 'Katni', 'Khandwa', 'Khargone', 'Mandla', 'Mandsaur', 'Morena', 'Narsinghpur', 'Neemuch', 'Niwari', 'Panna', 'Raisen', 'Rajgarh', 'Ratlam', 'Rewa', 'Sagar', 'Satna', 'Sehore', 'Seoni', 'Shahdol', 'Shajapur', 'Sheopur', 'Shivpuri', 'Sidhi', 'Singrauli', 'Tikamgarh', 'Ujjain', 'Umaria', 'Vidisha'],
-      'Maharashtra': ['Ahmednagar', 'Akola', 'Amravati', 'Aurangabad', 'Beed', 'Bhandara', 'Buldhana', 'Chandrapur', 'Dhule', 'Gadchiroli', 'Gondia', 'Hingoli', 'Jalgaon', 'Jalna', 'Kolhapur', 'Latur', 'Mumbai City', 'Mumbai Suburban', 'Nagpur', 'Nanded', 'Nandurbar', 'Nashik', 'Osmanabad', 'Palghar', 'Parbhani', 'Pune', 'Raigad', 'Ratnagiri', 'Sangli', 'Satara', 'Sindhudurg', 'Solapur', 'Thane', 'Wardha', 'Washim', 'Yavatmal', 'Mumbai'],
-      'Manipur': ['Bishnupur', 'Chandel', 'Churachandpur', 'Imphal East', 'Imphal West', 'Jiribam', 'Kakching', 'Kamjong', 'Kangpokpi', 'Noney', 'Pherzawl', 'Senapati', 'Tamenglong', 'Tengnoupal', 'Thoubal', 'Ukhrul'],
-      'Meghalaya': ['East Garo Hills', 'East Jaintia Hills', 'East Khasi Hills', 'North Garo Hills', 'Ri Bhoi', 'South Garo Hills', 'South West Garo Hills', 'South West Khasi Hills', 'West Garo Hills', 'West Jaintia Hills', 'West Khasi Hills'],
-      'Mizoram': ['Aizawl', 'Champhai', 'Hnahthial', 'Khawzawl', 'Kolasib', 'Lawngtlai', 'Lunglei', 'Mamit', 'Saiha', 'Saitual', 'Serchhip'],
-      'Nagaland': ['Chumoukedima', 'Dimapur', 'Kiphire', 'Kohima', 'Longleng', 'Mokokchung', 'Mon', 'Niuland', 'Noklak', 'Peren', 'Phek', 'Shamator', 'Tseminyu', 'Tuensang', 'Wokha', 'Zunheboto'],
-      'Odisha': ['Angul', 'Balangir', 'Balasore', 'Bargarh', 'Bhadrak', 'Boudh', 'Cuttack', 'Deogarh', 'Dhenkanal', 'Gajapati', 'Ganjam', 'Jagatsinghpur', 'Jajpur', 'Jharsuguda', 'Kalahandi', 'Kandhamal', 'Kendrapara', 'Kendujhar', 'Khordha', 'Koraput', 'Malkangiri', 'Mayurbhanj', 'Nabarangpur', 'Nayagarh', 'Nuapada', 'Puri', 'Rayagada', 'Sambalpur', 'Subarnapur', 'Sundargarh'],
-      'Punjab': ['Amritsar', 'Barnala', 'Bathinda', 'Faridkot', 'Fatehgarh Sahib', 'Fazilka', 'Ferozepur', 'Gurdaspur', 'Hoshiarpur', 'Jalandhar', 'Kapurthala', 'Ludhiana', 'Malerkotla', 'Mansa', 'Moga', 'Mohali', 'Muktsar', 'Pathankot', 'Patiala', 'Rupnagar', 'Sangrur', 'Shaheed Bhagat Singh Nagar', 'Tarn Taran'],
-      'Rajasthan': ['Ajmer', 'Alwar', 'Banswara', 'Baran', 'Barmer', 'Bharatpur', 'Bhilwara', 'Bikaner', 'Bundi', 'Chittorgarh', 'Churu', 'Dausa', 'Dholpur', 'Dungarpur', 'Hanumangarh', 'Jaipur', 'Jaisalmer', 'Jalore', 'Jhalawar', 'Jhunjhunu', 'Jodhpur', 'Karauli', 'Kota', 'Nagaur', 'Pali', 'Pratapgarh', 'Rajsamand', 'Sawai Madhopur', 'Sikar', 'Sirohi', 'Sri Ganganagar', 'Tonk', 'Udaipur'],
-      'Sikkim': ['Gangtok', 'Gyalshing', 'Mangan', 'Namchi', 'Pakyong', 'Soreng'],
-      'Tamil Nadu': ['Ariyalur', 'Chengalpattu', 'Chennai', 'Coimbatore', 'Cuddalore', 'Dharmapuri', 'Dindigul', 'Erode', 'Kallakurichi', 'Kanchipuram', 'Kanyakumari', 'Karur', 'Krishnagiri', 'Madurai', 'Mayiladuthurai', 'Nagapattinam', 'Namakkal', 'Nilgiris', 'Perambalur', 'Pudukkottai', 'Ramanathapuram', 'Ranipet', 'Salem', 'Sivaganga', 'Tenkasi', 'Thanjavur', 'Theni', 'Thoothukudi', 'Tiruchirappalli', 'Tirunelveli', 'Tirupathur', 'Tiruppur', 'Tiruvallur', 'Tiruvannamalai', 'Tiruvarur', 'Vellore', 'Viluppuram', 'Virudhunagar'],
-      'Telangana': ['Adilabad', 'Bhadradri Kothagudem', 'Hyderabad', 'Jagtial', 'Jangaon', 'Jayashankar Bhupalpally', 'Jogulamba Gadwal', 'Kamareddy', 'Karimnagar', 'Khammam', 'Komaram Bheem', 'Mahabubabad', 'Mahbubnagar', 'Mancherial', 'Medak', 'Medchal-Malkajgiri', 'Mulugu', 'Nagarkurnool', 'Nalgonda', 'Narayanpet', 'Nirmal', 'Nizamabad', 'Peddapalli', 'Rajanna Sircilla', 'Rangareddy', 'Sangareddy', 'Siddipet', 'Suryapet', 'Vikarabad', 'Wanaparthy', 'Warangal', 'Hanamkonda', 'Yadadri Bhuvanagiri'],
-      'Tripura': ['Dhalai', 'Gomati', 'Khowai', 'North Tripura', 'Sepahijala', 'South Tripura', 'Unakoti', 'West Tripura'],
-      'Uttar Pradesh': ['Agra', 'Aligarh', 'Ambedkar Nagar', 'Amethi', 'Amroha', 'Auraiya', 'Ayodhya', 'Azamgarh', 'Baghpat', 'Bahraich', 'Ballia', 'Balrampur', 'Banda', 'Barabanki', 'Bareilly', 'Basti', 'Bhadohi', 'Bijnor', 'Budaun', 'Bulandshahr', 'Chandauli', 'Chitrakoot', 'Deoria', 'Etah', 'Etawah', 'Farrukhabad', 'Fatehpur', 'Firozabad', 'Gautam Buddha Nagar', 'Ghaziabad', 'Ghazipur', 'Gonda', 'Gorakhpur', 'Hamirpur', 'Hapur', 'Hardoi', 'Hathras', 'Jalaun', 'Jaunpur', 'Jhansi', 'Kannauj', 'Kanpur Dehat', 'Kanpur Nagar', 'Kasganj', 'Kaushambi', 'Kheri', 'Kushinagar', 'Lalitpur', 'Lucknow', 'Maharajganj', 'Mahoba', 'Mainpuri', 'Mathura', 'Mau', 'Meerut', 'Mirzapur', 'Moradabad', 'Muzaffarnagar', 'Pilibhit', 'Pratapgarh', 'Prayagraj', 'Raebareli', 'Rampur', 'Saharanpur', 'Sambhal', 'Sant Kabir Nagar', 'Shahjahanpur', 'Shamli', 'Shravasti', 'Siddharthnagar', 'Sitapur', 'Sonbhadra', 'Sultanpur', 'Unnao', 'Varanasi'],
-      'Uttarakhand': ['Almora', 'Bageshwar', 'Chamoli', 'Champawat', 'Dehradun', 'Haridwar', 'Nainital', 'Pauri Garhwal', 'Pithoragarh', 'Rudraprayag', 'Tehri Garhwal', 'Udham Singh Nagar', 'Uttarkashi'],
-      'West Bengal': ['Alipurduar', 'Bankura', 'Birbhum', 'Cooch Behar', 'Dakshin Dinajpur', 'Darjeeling', 'Hooghly', 'Howrah', 'Jalpaiguri', 'Jhargram', 'Kalimpong', 'Kolkata', 'Malda', 'Murshidabad', 'Nadia', 'North 24 Parganas', 'Paschim Bardhaman', 'Paschim Medinipur', 'Purba Bardhaman', 'Purba Medinipur', 'Purulia', 'South 24 Parganas', 'Uttar Dinajpur'],
-      'Andaman and Nicobar Islands': ['Nicobar', 'North and Middle Andaman', 'South Andaman'],
-      'Chandigarh': ['Chandigarh'],
-      'Dadra and Nagar Haveli and Daman and Diu': ['Dadra and Nagar Haveli', 'Daman', 'Diu'],
-      'Delhi': ['Central Delhi', 'East Delhi', 'New Delhi', 'North Delhi', 'North East Delhi', 'North West Delhi', 'Shahdara', 'South Delhi', 'South East Delhi', 'South West Delhi', 'West Delhi'],
-      'Jammu and Kashmir': ['Anantnag', 'Bandipora', 'Baramulla', 'Budgam', 'Doda', 'Ganderbal', 'Jammu', 'Kathua', 'Kishtwar', 'Kulgam', 'Kupwara', 'Poonch', 'Pulwama', 'Rajouri', 'Ramban', 'Reasi', 'Samba', 'Shopian', 'Srinagar', 'Udhampur'],
-      'Ladakh': ['Kargil', 'Leh'],
-      'Lakshadweep': ['Lakshadweep'],
-      'Puducherry': ['Karaikal', 'Mahe', 'Puducherry', 'Yanam']
-    }
-  };
+  // locationData is now imported from '../data/locationData.js'
+
 
   const handleCountryChange = (e) => {
     setSelectedCountry(e.target.value);
@@ -116,6 +84,35 @@ const Home = () => {
     setSelectedDistrict('');
     setSelectedCity('');
     setSelectedPincode('');
+    setPincodePostOffices([]);
+    setPincodeMessage('');
+  };
+
+  const handlePincodeChange = async (value) => {
+    setSelectedPincode(value);
+    setPincodeMessage('');
+    setPincodePostOffices([]);
+
+    if (value.length === 6 && /^\d{6}$/.test(value)) {
+      setPincodeLoading(true);
+      const result = await lookupPincode(value);
+      setPincodeLoading(false);
+
+      if (result.success) {
+        const { state, district, postOffices } = result.data;
+        setSelectedState(state);
+        setSelectedDistrict(district);
+        setPincodePostOffices(postOffices);
+        if (postOffices.length === 1) {
+          setSelectedCity(postOffices[0].name);
+        } else {
+          setSelectedCity('');
+        }
+        setPincodeMessage(`✅ ${district}, ${state} — ${postOffices.length} area(s) found`);
+      } else {
+        setPincodeMessage(`❌ ${result.error}`);
+      }
+    }
   };
   const [enrollments, setEnrollments] = useState({});
   const [applicationStatuses, setApplicationStatuses] = useState({});
@@ -172,12 +169,11 @@ const Home = () => {
 
     const fetchData = async () => {
       try {
-        const timestamp = Date.now();
         const promises = [
-          axios.get(`/api/company?t=${timestamp}`),
-          axios.get(`/api/courses?t=${timestamp}`),
-          axios.get(`/api/internships?t=${timestamp}`),
-          axios.get(`/api/services?t=${timestamp}`)
+          axios.get('/api/company'),
+          axios.get('/api/courses'),
+          axios.get('/api/internships'),
+          axios.get('/api/services')
         ];
 
         if (user && user.role === 'candidate') {
@@ -266,6 +262,58 @@ const Home = () => {
 
     fetchData();
   }, [user, navigate]);
+
+  // Fetch filtered services from backend when filters change
+  useEffect(() => {
+    // Skip fetching on initial render since fetchData handles it
+    if (services.length === 0 && !selectedCountry && !selectedState && !selectedDistrict && !serviceSearch && !selectedCity && !selectedPincode && !selectedServiceType) {
+      return;
+    }
+
+    const fetchFilteredServices = async () => {
+      try {
+        const params = {};
+        if (serviceSearch) params.search = serviceSearch;
+        if (selectedServiceType) params.category = selectedServiceType;
+        if (selectedCountry) params.country = selectedCountry;
+        if (selectedState) params.state = selectedState;
+        if (selectedDistrict) params.district = selectedDistrict;
+        if (selectedCity) params.city = selectedCity;
+        if (selectedPincode) params.pincode = selectedPincode;
+
+        const response = await axios.get('/api/services', { params });
+
+        // Map Backend Services to UI Structure
+        if (response.data && Array.isArray(response.data)) {
+          const mappedServices = response.data.map(service => ({
+            _id: service._id,
+            role: service.category,
+            name: service.provider?.name || 'Service Provider',
+            location: service.location || 'India',
+            country: service.country || 'India',
+            state: service.state || '',
+            district: service.district || '',
+            city: service.city || '',
+            pincode: service.pincode || '',
+            image: service.image || `https://source.unsplash.com/random/800x600?${service.category}`,
+            rating: service.provider?.rating || 0,
+            reviews: service.provider?.reviewsCount || 0,
+            price: service.price
+          }));
+          setServices(mappedServices);
+        }
+      } catch (error) {
+        console.error('Error fetching filtered services:', error);
+      }
+    };
+
+    // Debounce the fetch slightly to avoid spamming the backend while typing
+    const timeoutId = setTimeout(() => {
+      fetchFilteredServices();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [serviceSearch, selectedServiceType, selectedCountry, selectedState, selectedDistrict, selectedCity, selectedPincode]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -492,24 +540,44 @@ const Home = () => {
                   ))}
                 </select>
 
-                {/* City/Village */}
-                <input
-                  type="text"
-                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium placeholder-gray-400"
-                  placeholder="City / Village"
-                  value={selectedCity}
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                />
+                {/* Pincode with Auto-Lookup */}
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium placeholder-gray-400"
+                    placeholder="Enter 6-digit Pincode"
+                    value={selectedPincode}
+                    onChange={(e) => handlePincodeChange(e.target.value.replace(/\D/g, ''))}
+                    maxLength={6}
+                  />
+                  {pincodeLoading && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                    </div>
+                  )}
+                </div>
 
-                {/* Pincode */}
-                <input
-                  type="text"
-                  className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium placeholder-gray-400"
-                  placeholder="Pincode"
-                  value={selectedPincode}
-                  onChange={(e) => setSelectedPincode(e.target.value)}
-                  maxLength={6}
-                />
+                {/* City/Village — dropdown when post offices available */}
+                {pincodePostOffices.length > 1 ? (
+                  <select
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                    className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                  >
+                    <option value="">Select City / Village</option>
+                    {pincodePostOffices.map((po, idx) => (
+                      <option key={idx} value={po.name}>{po.name} ({po.type})</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium placeholder-gray-400"
+                    placeholder="City / Village"
+                    value={selectedCity}
+                    onChange={(e) => setSelectedCity(e.target.value)}
+                  />
+                )}
 
                 {/* Type of Service */}
                 <select
@@ -523,6 +591,13 @@ const Home = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Pincode Lookup Status */}
+              {pincodeMessage && (
+                <p className={`text-xs font-medium px-1 ${pincodeMessage.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>
+                  {pincodeMessage}
+                </p>
+              )}
 
               {/* Fast Search */}
               <div className="relative">
@@ -544,42 +619,7 @@ const Home = () => {
           <div className="relative group/slider">
             <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
               {(() => {
-                const filteredServices = services.filter((service) => {
-                  // Text Search
-                  const matchesSearch = serviceSearch
-                    ? (service.role.toLowerCase().includes(serviceSearch.toLowerCase()) ||
-                      service.location.toLowerCase().includes(serviceSearch.toLowerCase()) ||
-                      (service.city || '').toLowerCase().includes(serviceSearch.toLowerCase()) ||
-                      (service.pincode || '').includes(serviceSearch))
-                    : true;
-
-                  // State Filter
-                  const matchesState = selectedState
-                    ? (service.state === selectedState || locationData[selectedCountry]?.[selectedState]?.includes(service.location))
-                    : true;
-
-                  // District Filter
-                  const matchesDistrict = selectedDistrict
-                    ? (service.district === selectedDistrict || service.location === selectedDistrict)
-                    : true;
-
-                  // City/Village Filter
-                  const matchesCity = selectedCity
-                    ? (service.city || '').toLowerCase().includes(selectedCity.toLowerCase())
-                    : true;
-
-                  // Pincode Filter
-                  const matchesPincode = selectedPincode
-                    ? (service.pincode || '').includes(selectedPincode)
-                    : true;
-
-                  // Type of Service Filter
-                  const matchesServiceType = selectedServiceType
-                    ? service.role === selectedServiceType
-                    : true;
-
-                  return matchesSearch && matchesState && matchesDistrict && matchesCity && matchesPincode && matchesServiceType;
-                });
+                const filteredServices = services; // services are now filtered by the backend
 
                 if (filteredServices.length === 0) {
                   return (
@@ -599,6 +639,8 @@ const Home = () => {
                           setSelectedServiceType('');
                           setSelectedCountry('India');
                           setSelectedServiceRole(null);
+                          setPincodePostOffices([]);
+                          setPincodeMessage('');
                         }}
                         className="mt-4 text-blue-600 font-bold hover:underline"
                       >
@@ -766,7 +808,7 @@ const Home = () => {
                 >
                   <Link to={`/courses/${course._id}`} className="block relative h-48 overflow-hidden cursor-pointer">
                     <img
-                      src={course.thumbnail || 'https://via.placeholder.com/400x200'}
+                      src={course.thumbnail || 'https://placehold.co/400x200?text=No+Image'}
                       alt={course.title}
                       className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-500"
                     />

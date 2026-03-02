@@ -6,9 +6,9 @@ const createTransporter = () => {
     console.error('❌ EMAIL_USER or EMAIL_PASS environment variables are not set!');
     throw new Error('Email configuration is missing. Please set EMAIL_USER and EMAIL_PASS in .env file');
   }
-  
+
   console.log('📧 Creating email transporter with user:', process.env.EMAIL_USER);
-  
+
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -114,7 +114,7 @@ exports.sendEnrollmentDecisionToCandidate = async (candidateEmail, candidateName
   const statusColor = status === 'payment_pending' ? '#3B82F6' : status === 'accepted' ? '#10B981' : status === 'unenrolled' ? '#F59E0B' : '#EF4444';
   const statusText = status === 'payment_pending' ? 'Approved - Payment Required' : status === 'accepted' ? 'Accepted' : status === 'unenrolled' ? 'Unenrolled' : 'Rejected';
   const statusIcon = status === 'payment_pending' ? '💳' : status === 'accepted' ? '✅' : status === 'unenrolled' ? '⚠️' : '❌';
-  
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: candidateEmail,
@@ -133,7 +133,7 @@ exports.sendEnrollmentDecisionToCandidate = async (candidateEmail, candidateName
         </div>
         
         ${status === 'payment_pending'
-          ? `<p><strong>Next Step: Complete Payment</strong></p>
+        ? `<p><strong>Next Step: Complete Payment</strong></p>
              <p>To confirm your enrollment, please complete the payment for this course. Visit your dashboard and click the "Pay Now" button to proceed with payment.</p>
              <div style="margin: 30px 0;">
                <a href="${process.env.FRONTEND_URL}/dashboard" 
@@ -141,7 +141,7 @@ exports.sendEnrollmentDecisionToCandidate = async (candidateEmail, candidateName
                  Pay Now
                </a>
              </div>`
-          : status === 'accepted' 
+        : status === 'accepted'
           ? `<p>Congratulations! You have been successfully enrolled in the course. You can now access the course materials and start learning.</p>
              <div style="margin: 30px 0;">
                <a href="${process.env.FRONTEND_URL}/courses" 
@@ -150,21 +150,21 @@ exports.sendEnrollmentDecisionToCandidate = async (candidateEmail, candidateName
                </a>
              </div>`
           : status === 'unenrolled'
-          ? `<p>You have been unenrolled from this course. ${message ? 'Please review the manager\'s message above.' : 'If you believe this is a mistake, please contact support.'}</p>
+            ? `<p>You have been unenrolled from this course. ${message ? 'Please review the manager\'s message above.' : 'If you believe this is a mistake, please contact support.'}</p>
              <div style="margin: 30px 0;">
                <a href="${process.env.FRONTEND_URL}/courses" 
                   style="background-color: #F59E0B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                  Browse Other Courses
                </a>
              </div>`
-          : `<p>Unfortunately, your enrollment request was not approved at this time. ${message ? 'Please review the manager\'s message above.' : 'You can apply for other courses or contact support for more information.'}</p>
+            : `<p>Unfortunately, your enrollment request was not approved at this time. ${message ? 'Please review the manager\'s message above.' : 'You can apply for other courses or contact support for more information.'}</p>
              <div style="margin: 30px 0;">
                <a href="${process.env.FRONTEND_URL}/courses" 
                   style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                  Browse Other Courses
                </a>
              </div>`
-        }
+      }
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #E5E7EB;">
         <p style="color: #6B7280; font-size: 14px;">
@@ -320,7 +320,7 @@ exports.sendInternshipApplicationDecisionToCandidate = async (candidateEmail, ca
   const statusColor = status === 'accepted' ? '#10B981' : '#EF4444';
   const statusText = status === 'accepted' ? 'Accepted' : 'Rejected';
   const statusIcon = status === 'accepted' ? '✅' : '❌';
-  
+
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: candidateEmail,
@@ -338,22 +338,22 @@ exports.sendInternshipApplicationDecisionToCandidate = async (candidateEmail, ca
           ${message ? `<p><strong>Manager's Message:</strong> ${message}</p>` : ''}
         </div>
         
-        ${status === 'accepted' 
-          ? `<p>🎉 Congratulations! You have been selected for the internship. The team will contact you shortly with further details about the next steps.</p>
+        ${status === 'accepted'
+        ? `<p>🎉 Congratulations! You have been selected for the internship. The team will contact you shortly with further details about the next steps.</p>
              <div style="margin: 30px 0;">
                <a href="${process.env.FRONTEND_URL}/application-history" 
                   style="background-color: #10B981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                  View Application
                </a>
              </div>`
-          : `<p>Unfortunately, your application was not approved at this time. ${message ? 'Please review the manager\'s message above.' : 'We encourage you to apply for other internship opportunities or contact us for feedback.'}</p>
+        : `<p>Unfortunately, your application was not approved at this time. ${message ? 'Please review the manager\'s message above.' : 'We encourage you to apply for other internship opportunities or contact us for feedback.'}</p>
              <div style="margin: 30px 0;">
                <a href="${process.env.FRONTEND_URL}/internships" 
                   style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
                  Browse Other Internships
                </a>
              </div>`
-        }
+      }
         
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #E5E7EB;">
         <p style="color: #6B7280; font-size: 14px;">
@@ -373,16 +373,16 @@ exports.sendInternshipApplicationDecisionToCandidate = async (candidateEmail, ca
 // Send manager account approval email
 exports.sendManagerAccountApprovalEmail = async (managerEmail, managerName, permissions) => {
   console.log('🚀 Attempting to send manager approval email to:', managerEmail);
-  
+
   try {
     const transporter = createTransporter();
     console.log('✅ Transporter created successfully');
-    
+
     const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: managerEmail,
-    subject: '🎉 Manager Account Approved - WEintegrity Technologies',
-    html: `
+      from: process.env.EMAIL_USER,
+      to: managerEmail,
+      subject: '🎉 Manager Account Approved - WEintegrity Technologies',
+      html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #10B981;">✅ Welcome to WEintegrity!</h2>
         <p>Dear ${managerName},</p>
@@ -425,7 +425,7 @@ exports.sendManagerAccountApprovalEmail = async (managerEmail, managerName, perm
         </p>
       </div>
     `
-  };
+    };
 
     await transporter.sendMail(mailOptions);
     console.log(`✅ Manager approval email sent successfully to ${managerEmail}`);
@@ -444,14 +444,14 @@ exports.sendManagerAccountApprovalEmail = async (managerEmail, managerName, perm
 // Send manager account rejection email
 exports.sendManagerAccountRejectionEmail = async (managerEmail, managerName) => {
   console.log('🚀 Attempting to send manager rejection email to:', managerEmail);
-  
+
   try {
     const transporter = createTransporter();
     const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: managerEmail,
-    subject: 'Manager Account Request - Status Update',
-    html: `
+      from: process.env.EMAIL_USER,
+      to: managerEmail,
+      subject: 'Manager Account Request - Status Update',
+      html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #EF4444;">Account Request Status Update</h2>
         <p>Dear ${managerName},</p>
@@ -478,7 +478,7 @@ exports.sendManagerAccountRejectionEmail = async (managerEmail, managerName) => 
         </p>
       </div>
     `
-  };
+    };
 
     await transporter.sendMail(mailOptions);
     console.log(`✅ Manager rejection email sent successfully to ${managerEmail}`);
@@ -496,14 +496,14 @@ exports.sendManagerAccountRejectionEmail = async (managerEmail, managerName) => 
 // Send notification to existing managers about new manager request
 exports.sendNewManagerRequestNotification = async (existingManagerEmail, requestDetails) => {
   console.log('🔔 Sending new manager request notification to:', existingManagerEmail);
-  
+
   try {
     const transporter = createTransporter();
     const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: existingManagerEmail,
-    subject: '🔔 New Manager Account Request - Action Required',
-    html: `
+      from: process.env.EMAIL_USER,
+      to: existingManagerEmail,
+      subject: '🔔 New Manager Account Request - Action Required',
+      html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2 style="color: #4F46E5;">New Manager Account Request</h2>
         <p>Hello,</p>
@@ -532,7 +532,7 @@ exports.sendNewManagerRequestNotification = async (existingManagerEmail, request
         </p>
       </div>
     `
-  };
+    };
 
     await transporter.sendMail(mailOptions);
     console.log(`✅ New manager request notification sent to ${existingManagerEmail}`);
@@ -549,7 +549,7 @@ exports.sendNewManagerRequestNotification = async (existingManagerEmail, request
 // Send course request notification to managers
 exports.sendCourseRequestNotification = async (managerEmail, managerName, candidateName, candidateEmail, courseName) => {
   const transporter = createTransporter();
-  
+
   try {
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -582,7 +582,7 @@ exports.sendCourseRequestNotification = async (managerEmail, managerName, candid
         </div>
       `
     };
-    
+
     await transporter.sendMail(mailOptions);
     console.log('✅ Course request notification sent to:', managerEmail);
   } catch (error) {
@@ -594,12 +594,12 @@ exports.sendCourseRequestNotification = async (managerEmail, managerName, candid
 // Send course request decision (approval/rejection) to candidate
 exports.sendCourseRequestDecision = async (candidateEmail, candidateName, courseName, decision, message) => {
   const transporter = createTransporter();
-  
+
   const isApproved = decision === 'approved';
   const title = isApproved ? '✅ Course Enrollment Approved' : '❌ Course Enrollment Request Rejected';
   const statusColor = isApproved ? '#10B981' : '#EF4444';
   const statusText = isApproved ? 'APPROVED' : 'REJECTED';
-  
+
   try {
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -634,7 +634,7 @@ exports.sendCourseRequestDecision = async (candidateEmail, candidateName, course
         </div>
       `
     };
-    
+
     await transporter.sendMail(mailOptions);
     console.log(`✅ Course request ${decision} email sent to:`, candidateEmail);
   } catch (error) {

@@ -92,4 +92,7 @@ const serviceSchema = new mongoose.Schema({
     }
 });
 
+// Compound performance indexes
+serviceSchema.index({ status: 1, category: 1, createdAt: -1 });
+
 module.exports = mongoose.model('Service', serviceSchema);

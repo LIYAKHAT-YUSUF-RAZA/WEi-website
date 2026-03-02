@@ -48,4 +48,7 @@ const managerRequestSchema = new mongoose.Schema({
   }
 });
 
+// Performance indexes
+managerRequestSchema.index({ status: 1, createdAt: -1 });
+
 module.exports = mongoose.model('ManagerRequest', managerRequestSchema);

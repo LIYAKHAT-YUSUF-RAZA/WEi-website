@@ -198,7 +198,7 @@ const ManageServices = () => {
                                             <div className="flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden">
                                                     <img
-                                                        src={service.image || 'https://via.placeholder.com/100'}
+                                                        src={service.image || 'https://placehold.co/100x100?text=No+Image'}
                                                         alt=""
                                                         className="w-full h-full object-cover"
                                                     />

@@ -8,7 +8,7 @@ const { sendInternshipApplicationToManager, sendInternshipApplicationConfirmatio
 // @access  Public
 const getInternships = async (req, res) => {
   try {
-    const internships = await Internship.find({ status: 'open' }).sort({ createdAt: -1 });
+    const internships = await Internship.find({ status: 'open' }).sort({ createdAt: -1 }).lean();
     res.json(internships);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -21,11 +21,11 @@ const getInternships = async (req, res) => {
 const getInternshipById = async (req, res) => {
   try {
     const internship = await Internship.findById(req.params.id);
-    
+
     if (!internship) {
       return res.status(404).json({ message: 'Internship not found' });
     }
-    
+
     res.json(internship);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -39,7 +39,7 @@ const applyInternship = async (req, res) => {
   try {
     const { candidateDetails, documents } = req.body;
     const internship = await Internship.findById(req.params.id);
-    
+
     if (!internship) {
       return res.status(404).json({ message: 'Internship not found' });
     }

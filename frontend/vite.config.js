@@ -5,7 +5,7 @@ import compression from 'vite-plugin-compression'
 
 export default defineConfig({
   plugins: [
-    react(), 
+    react(),
     tailwindcss(),
     compression({
       verbose: false,
@@ -32,7 +32,7 @@ export default defineConfig({
         manualChunks: {
           vendor: ['react', 'react-dom', 'react-router-dom'],
           axios: ['axios'],
-          ui: ['react-icons']
+          ui: ['lucide-react']
         }
       }
     }

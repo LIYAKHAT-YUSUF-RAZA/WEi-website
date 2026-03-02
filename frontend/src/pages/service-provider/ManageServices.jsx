@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
+import { lookupPincode } from '../../utils/pincodeUtils.js';
 
 const ManageServices = () => {
     const navigate = useNavigate();
@@ -11,6 +12,11 @@ const ManageServices = () => {
     const [showModal, setShowModal] = useState(false);
     const [editingService, setEditingService] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+
+    // Pincode lookup states
+    const [pincodeLoading, setPincodeLoading] = useState(false);
+    const [pincodeMessage, setPincodeMessage] = useState('');
+    const [pincodePostOffices, setPincodePostOffices] = useState([]);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -108,13 +114,42 @@ const ManageServices = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         if (name === 'country') {
-            setFormData(prev => ({ ...prev, country: value, state: '', district: '', city: '', location: '' }));
+            setFormData(prev => ({ ...prev, country: value, state: '', district: '', city: '', location: '', pincode: '' }));
+            setPincodePostOffices([]);
+            setPincodeMessage('');
         } else if (name === 'state') {
             setFormData(prev => ({ ...prev, state: value, district: '', city: '', location: '' }));
         } else if (name === 'district') {
             setFormData(prev => ({ ...prev, district: value, location: value }));
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
+        }
+    };
+
+    const handlePincodeChange = async (value) => {
+        setFormData(prev => ({ ...prev, pincode: value }));
+        setPincodeMessage('');
+        setPincodePostOffices([]);
+
+        if (value.length === 6 && /^\d{6}$/.test(value)) {
+            setPincodeLoading(true);
+            const result = await lookupPincode(value);
+            setPincodeLoading(false);
+
+            if (result.success) {
+                const { state, district, postOffices } = result.data;
+                setFormData(prev => ({
+                    ...prev,
+                    state,
+                    district,
+                    location: district,
+                    city: postOffices.length === 1 ? postOffices[0].name : prev.city
+                }));
+                setPincodePostOffices(postOffices);
+                setPincodeMessage(`✅ ${district}, ${state} — ${postOffices.length} area(s) found`);
+            } else {
+                setPincodeMessage(`❌ ${result.error}`);
+            }
         }
     };
 
@@ -245,7 +280,7 @@ const ManageServices = () => {
                             <div key={service._id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-100 overflow-hidden group">
                                 <div className="h-48 overflow-hidden relative">
                                     <img
-                                        src={service.image || 'https://via.placeholder.com/400x300?text=No+Image'}
+                                        src={service.image || 'https://placehold.co/400x300?text=No+Image'}
                                         alt={service.title}
                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                     />
@@ -423,28 +458,54 @@ const ManageServices = () => {
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">City / Village</label>
-                                        <input
-                                            type="text"
-                                            name="city"
-                                            value={formData.city}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                            placeholder="e.g., Rajahmundry"
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
+                                        <div className="relative">
+                                            <input
+                                                type="text"
+                                                name="pincode"
+                                                value={formData.pincode}
+                                                onChange={(e) => handlePincodeChange(e.target.value.replace(/\D/g, ''))}
+                                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+                                                placeholder="e.g., 534001"
+                                                maxLength={6}
+                                            />
+                                            {pincodeLoading && (
+                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                                                </div>
+                                            )}
+                                        </div>
+                                        {pincodeMessage && (
+                                            <p className={`text-xs font-medium mt-1 ${pincodeMessage.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>
+                                                {pincodeMessage}
+                                            </p>
+                                        )}
                                     </div>
 
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
-                                        <input
-                                            type="text"
-                                            name="pincode"
-                                            value={formData.pincode}
-                                            onChange={handleInputChange}
-                                            className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                            placeholder="e.g., 533101"
-                                            maxLength={6}
-                                        />
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">City / Village</label>
+                                        {pincodePostOffices.length > 1 ? (
+                                            <select
+                                                name="city"
+                                                value={formData.city}
+                                                onChange={handleInputChange}
+                                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="">Select City / Village</option>
+                                                {pincodePostOffices.map((po, idx) => (
+                                                    <option key={idx} value={po.name}>{po.name} ({po.type})</option>
+                                                ))}
+                                            </select>
+                                        ) : (
+                                            <input
+                                                type="text"
+                                                name="city"
+                                                value={formData.city}
+                                                onChange={handleInputChange}
+                                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+                                                placeholder="e.g., Rajahmundry"
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             </div>

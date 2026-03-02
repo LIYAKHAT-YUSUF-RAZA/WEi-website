@@ -62,4 +62,11 @@ const applicationSchema = new mongoose.Schema({
   }
 });
 
+// Performance indexes
+applicationSchema.index({ type: 1, status: 1 });
+applicationSchema.index({ candidateId: 1, type: 1 });
+applicationSchema.index({ candidateId: 1, referenceId: 1 });
+applicationSchema.index({ status: 1 });
+applicationSchema.index({ createdAt: -1 });
+
 module.exports = mongoose.model('Application', applicationSchema);

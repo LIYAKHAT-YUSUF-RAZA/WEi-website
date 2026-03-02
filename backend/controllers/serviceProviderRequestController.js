@@ -65,7 +65,7 @@ const createRequest = async (req, res) => {
 // @access  Private (Manager only)
 const getRequests = async (req, res) => {
     try {
-        const requests = await ServiceProviderRequest.find().sort({ createdAt: -1 });
+        const requests = await ServiceProviderRequest.find().sort({ createdAt: -1 }).lean();
         res.json(requests);
     } catch (error) {
         res.status(500).json({ message: error.message });

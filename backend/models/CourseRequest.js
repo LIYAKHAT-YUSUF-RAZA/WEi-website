@@ -51,4 +51,8 @@ const courseRequestSchema = new mongoose.Schema({
   }
 });
 
+// Performance indexes
+courseRequestSchema.index({ status: 1, createdAt: -1 });
+courseRequestSchema.index({ candidateId: 1, courseId: 1 });
+
 module.exports = mongoose.model('CourseRequest', courseRequestSchema);

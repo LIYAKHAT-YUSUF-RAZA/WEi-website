@@ -41,8 +41,8 @@ const createCourseRequest = async (req, res) => {
     await courseRequest.save();
 
     // Send notification email to manager
-    const managers = await User.find({ 
-      'permissions.canManageCourses': true 
+    const managers = await User.find({
+      'permissions.canManageCourses': true
     });
 
     for (const manager of managers) {
@@ -81,25 +81,34 @@ const getCourseRequests = async (req, res) => {
       query.status = status;
     }
 
-    const courseRequests = await CourseRequest.find(query)
-      .populate('candidateId', 'fullName email')
-      .populate('courseId', 'name')
-      .populate('approvedBy', 'fullName email')
-      .sort({ createdAt: -1 });
+    // Run query and counts in parallel, using aggregation for counts
+    const [courseRequests, countResult] = await Promise.all([
+      CourseRequest.find(query)
+        .populate('candidateId', 'fullName email')
+        .populate('courseId', 'name')
+        .populate('approvedBy', 'fullName email')
+        .sort({ createdAt: -1 })
+        .lean(),
+      CourseRequest.aggregate([
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+            approved: { $sum: { $cond: [{ $eq: ['$status', 'approved'] }, 1, 0] } },
+            rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
+          }
+        }
+      ])
+    ]);
 
-    const counts = {
-      total: await CourseRequest.countDocuments(),
-      pending: await CourseRequest.countDocuments({ status: 'pending' }),
-      approved: await CourseRequest.countDocuments({ status: 'approved' }),
-      rejected: await CourseRequest.countDocuments({ status: 'rejected' })
-    };
+    const counts = countResult[0] || { total: 0, pending: 0, approved: 0, rejected: 0 };
 
     res.status(200).json({
       courseRequests,
       counts
     });
   } catch (error) {
-    console.error('Error fetching course requests:', error);
     res.status(500).json({ message: error.message });
   }
 };
