@@ -9,7 +9,6 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { useCart } from '../context/CartContext.jsx';
 import { featuredInternships } from '../data/featuredData.js';
 import { locationData } from '../data/locationData.js';
-import { lookupPincode } from '../utils/pincodeUtils.js';
 
 const Home = () => {
   const [companyInfo, setCompanyInfo] = useState(null);
@@ -56,10 +55,9 @@ const Home = () => {
   const [selectedPincode, setSelectedPincode] = useState('');
   const [selectedServiceType, setSelectedServiceType] = useState('');
 
-  // Pincode lookup states
-  const [pincodeLoading, setPincodeLoading] = useState(false);
-  const [pincodeMessage, setPincodeMessage] = useState('');
-  const [pincodePostOffices, setPincodePostOffices] = useState([]);
+  // District locations lookup states
+  const [districtLocations, setDistrictLocations] = useState([]);
+  const [locationsLoading, setLocationsLoading] = useState(false);
 
   const serviceTypes = [
     'Electrician', 'AC Mechanic', 'Bike Mechanic', 'Painter', 'Carpenter',
@@ -77,6 +75,7 @@ const Home = () => {
     setSelectedDistrict('');
     setSelectedCity('');
     setSelectedPincode('');
+    setDistrictLocations([]);
   };
 
   const handleStateChange = (e) => {
@@ -84,35 +83,45 @@ const Home = () => {
     setSelectedDistrict('');
     setSelectedCity('');
     setSelectedPincode('');
-    setPincodePostOffices([]);
-    setPincodeMessage('');
+    setDistrictLocations([]);
   };
 
-  const handlePincodeChange = async (value) => {
-    setSelectedPincode(value);
-    setPincodeMessage('');
-    setPincodePostOffices([]);
+  const handleDistrictChange = async (e) => {
+    const district = e.target.value;
+    setSelectedDistrict(district);
+    setSelectedCity('');
+    setSelectedPincode('');
 
-    if (value.length === 6 && /^\d{6}$/.test(value)) {
-      setPincodeLoading(true);
-      const result = await lookupPincode(value);
-      setPincodeLoading(false);
-
-      if (result.success) {
-        const { state, district, postOffices } = result.data;
-        setSelectedState(state);
-        setSelectedDistrict(district);
-        setPincodePostOffices(postOffices);
-        if (postOffices.length === 1) {
-          setSelectedCity(postOffices[0].name);
+    if (district) {
+      setLocationsLoading(true);
+      try {
+        const res = await axios.get(`/api/locations/district/${encodeURIComponent(district)}`);
+        if (res.data.success) {
+          setDistrictLocations(res.data.data);
         } else {
-          setSelectedCity('');
+          setDistrictLocations([]);
         }
-        setPincodeMessage(`✅ ${district}, ${state} — ${postOffices.length} area(s) found`);
-      } else {
-        setPincodeMessage(`❌ ${result.error}`);
+      } catch (err) {
+        console.error('Error fetching locations:', err);
+        setDistrictLocations([]);
+      } finally {
+        setLocationsLoading(false);
       }
+    } else {
+      setDistrictLocations([]);
     }
+  };
+
+  const handleVillageChange = (e) => {
+    const selectedVal = e.target.value;
+    if (!selectedVal) {
+      setSelectedCity('');
+      setSelectedPincode('');
+      return;
+    }
+    const [name, pin] = selectedVal.split('|');
+    setSelectedCity(name);
+    setSelectedPincode(pin);
   };
   const [enrollments, setEnrollments] = useState({});
   const [applicationStatuses, setApplicationStatuses] = useState({});
@@ -530,7 +539,7 @@ const Home = () => {
                 {/* District Selection */}
                 <select
                   value={selectedDistrict}
-                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  onChange={handleDistrictChange}
                   disabled={!selectedState}
                   className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium disabled:opacity-50"
                 >
@@ -540,44 +549,27 @@ const Home = () => {
                   ))}
                 </select>
 
-                {/* Pincode with Auto-Lookup */}
+                {/* Village / Town Selection */}
                 <div className="relative">
-                  <input
-                    type="text"
-                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium placeholder-gray-400"
-                    placeholder="Enter 6-digit Pincode"
-                    value={selectedPincode}
-                    onChange={(e) => handlePincodeChange(e.target.value.replace(/\D/g, ''))}
-                    maxLength={6}
-                  />
-                  {pincodeLoading && (
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <select
+                    value={selectedCity && selectedPincode ? `${selectedCity}|${selectedPincode}` : ''}
+                    onChange={handleVillageChange}
+                    disabled={!selectedDistrict || locationsLoading}
+                    className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium disabled:opacity-50 appearance-none"
+                  >
+                    <option value="">Select Village / Town</option>
+                    {districtLocations.map((loc, idx) => (
+                      <option key={`${loc.name}-${loc.pincode}-${idx}`} value={`${loc.name}|${loc.pincode}`}>
+                        {loc.name} - {loc.pincode}
+                      </option>
+                    ))}
+                  </select>
+                  {locationsLoading && (
+                    <div className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center">
                       <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
                   )}
                 </div>
-
-                {/* City/Village — dropdown when post offices available */}
-                {pincodePostOffices.length > 1 ? (
-                  <select
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                    className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
-                  >
-                    <option value="">Select City / Village</option>
-                    {pincodePostOffices.map((po, idx) => (
-                      <option key={idx} value={po.name}>{po.name} ({po.type})</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    className="px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium placeholder-gray-400"
-                    placeholder="City / Village"
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                  />
-                )}
 
                 {/* Type of Service */}
                 <select
@@ -592,12 +584,7 @@ const Home = () => {
                 </select>
               </div>
 
-              {/* Pincode Lookup Status */}
-              {pincodeMessage && (
-                <p className={`text-xs font-medium px-1 ${pincodeMessage.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>
-                  {pincodeMessage}
-                </p>
-              )}
+
 
               {/* Fast Search */}
               <div className="relative">
@@ -639,8 +626,7 @@ const Home = () => {
                           setSelectedServiceType('');
                           setSelectedCountry('India');
                           setSelectedServiceRole(null);
-                          setPincodePostOffices([]);
-                          setPincodeMessage('');
+                          setDistrictLocations([]);
                         }}
                         className="mt-4 text-blue-600 font-bold hover:underline"
                       >

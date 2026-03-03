@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
-import { lookupPincode } from '../../utils/pincodeUtils.js';
 
 const ManageServices = () => {
     const navigate = useNavigate();
@@ -13,10 +12,9 @@ const ManageServices = () => {
     const [editingService, setEditingService] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // Pincode lookup states
-    const [pincodeLoading, setPincodeLoading] = useState(false);
-    const [pincodeMessage, setPincodeMessage] = useState('');
-    const [pincodePostOffices, setPincodePostOffices] = useState([]);
+    // District locations lookup states
+    const [districtLocations, setDistrictLocations] = useState([]);
+    const [locationsLoading, setLocationsLoading] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -115,42 +113,47 @@ const ManageServices = () => {
         const { name, value } = e.target;
         if (name === 'country') {
             setFormData(prev => ({ ...prev, country: value, state: '', district: '', city: '', location: '', pincode: '' }));
-            setPincodePostOffices([]);
-            setPincodeMessage('');
+            setDistrictLocations([]);
         } else if (name === 'state') {
-            setFormData(prev => ({ ...prev, state: value, district: '', city: '', location: '' }));
-        } else if (name === 'district') {
-            setFormData(prev => ({ ...prev, district: value, location: value }));
+            setFormData(prev => ({ ...prev, state: value, district: '', city: '', location: '', pincode: '' }));
+            setDistrictLocations([]);
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
 
-    const handlePincodeChange = async (value) => {
-        setFormData(prev => ({ ...prev, pincode: value }));
-        setPincodeMessage('');
-        setPincodePostOffices([]);
+    const handleDistrictChange = async (e) => {
+        const district = e.target.value;
+        setFormData(prev => ({ ...prev, district, location: district, city: '', pincode: '' }));
 
-        if (value.length === 6 && /^\d{6}$/.test(value)) {
-            setPincodeLoading(true);
-            const result = await lookupPincode(value);
-            setPincodeLoading(false);
-
-            if (result.success) {
-                const { state, district, postOffices } = result.data;
-                setFormData(prev => ({
-                    ...prev,
-                    state,
-                    district,
-                    location: district,
-                    city: postOffices.length === 1 ? postOffices[0].name : prev.city
-                }));
-                setPincodePostOffices(postOffices);
-                setPincodeMessage(`✅ ${district}, ${state} — ${postOffices.length} area(s) found`);
-            } else {
-                setPincodeMessage(`❌ ${result.error}`);
+        if (district) {
+            setLocationsLoading(true);
+            try {
+                const res = await axios.get(`/api/locations/district/${encodeURIComponent(district)}`);
+                if (res.data.success) {
+                    setDistrictLocations(res.data.data);
+                } else {
+                    setDistrictLocations([]);
+                }
+            } catch (err) {
+                console.error('Error fetching locations:', err);
+                setDistrictLocations([]);
+            } finally {
+                setLocationsLoading(false);
             }
+        } else {
+            setDistrictLocations([]);
         }
+    };
+
+    const handleVillageChange = (e) => {
+        const selectedVal = e.target.value;
+        if (!selectedVal) {
+            setFormData(prev => ({ ...prev, city: '', pincode: '' }));
+            return;
+        }
+        const [name, pin] = selectedVal.split('|');
+        setFormData(prev => ({ ...prev, city: name, pincode: pin }));
     };
 
     const handleSubmit = async (e) => {
@@ -185,7 +188,7 @@ const ManageServices = () => {
         }
     };
 
-    const handleEdit = (service) => {
+    const handleEdit = async (service) => {
         setEditingService(service);
         setFormData({
             title: service.title,
@@ -201,6 +204,25 @@ const ManageServices = () => {
             image: service.image || '',
             status: service.status
         });
+
+        if (service.district) {
+            setLocationsLoading(true);
+            try {
+                const res = await axios.get(`/api/locations/district/${encodeURIComponent(service.district)}`);
+                if (res.data.success) {
+                    setDistrictLocations(res.data.data);
+                } else {
+                    setDistrictLocations([]);
+                }
+            } catch (err) {
+                console.error('Error fetching locations:', err);
+                setDistrictLocations([]);
+            } finally {
+                setLocationsLoading(false);
+            }
+        } else {
+            setDistrictLocations([]);
+        }
         setShowModal(true);
     };
 
@@ -249,6 +271,7 @@ const ManageServices = () => {
                                 image: '',
                                 status: 'active'
                             });
+                            setDistrictLocations([]);
                             setShowModal(true);
                         }}
                         className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg hover:bg-blue-700 transition shadow-lg"
@@ -446,7 +469,7 @@ const ManageServices = () => {
                                         <select
                                             name="district"
                                             value={formData.district}
-                                            onChange={handleInputChange}
+                                            onChange={handleDistrictChange}
                                             disabled={!formData.state}
                                             className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                                         >
@@ -457,55 +480,28 @@ const ManageServices = () => {
                                         </select>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Pincode</label>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Village / Town</label>
                                         <div className="relative">
-                                            <input
-                                                type="text"
-                                                name="pincode"
-                                                value={formData.pincode}
-                                                onChange={(e) => handlePincodeChange(e.target.value.replace(/\D/g, ''))}
-                                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                                placeholder="e.g., 534001"
-                                                maxLength={6}
-                                            />
-                                            {pincodeLoading && (
-                                                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                            <select
+                                                value={formData.city && formData.pincode ? `${formData.city}|${formData.pincode}` : ''}
+                                                onChange={handleVillageChange}
+                                                disabled={!formData.district || locationsLoading}
+                                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 appearance-none"
+                                            >
+                                                <option value="">Select Village / Town</option>
+                                                {districtLocations.map((loc, idx) => (
+                                                    <option key={`${loc.name}-${loc.pincode}-${idx}`} value={`${loc.name}|${loc.pincode}`}>
+                                                        {loc.name} - {loc.pincode}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {locationsLoading && (
+                                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                                     <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                                                 </div>
                                             )}
                                         </div>
-                                        {pincodeMessage && (
-                                            <p className={`text-xs font-medium mt-1 ${pincodeMessage.startsWith('✅') ? 'text-green-600' : 'text-red-500'}`}>
-                                                {pincodeMessage}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">City / Village</label>
-                                        {pincodePostOffices.length > 1 ? (
-                                            <select
-                                                name="city"
-                                                value={formData.city}
-                                                onChange={handleInputChange}
-                                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                            >
-                                                <option value="">Select City / Village</option>
-                                                {pincodePostOffices.map((po, idx) => (
-                                                    <option key={idx} value={po.name}>{po.name} ({po.type})</option>
-                                                ))}
-                                            </select>
-                                        ) : (
-                                            <input
-                                                type="text"
-                                                name="city"
-                                                value={formData.city}
-                                                onChange={handleInputChange}
-                                                className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
-                                                placeholder="e.g., Rajahmundry"
-                                            />
-                                        )}
                                     </div>
                                 </div>
                             </div>

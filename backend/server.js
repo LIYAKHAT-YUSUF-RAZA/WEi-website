@@ -74,6 +74,7 @@ app.use('/api/service-provider-requests', require('./routes/serviceProviderReque
 app.use('/api/services', require('./routes/serviceRoutes'));
 app.use('/api/reviews', require('./routes/reviewRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
+app.use('/api/locations', require('./routes/locationRoutes'));
 
 // Welcome route
 app.get('/', (req, res) => {
