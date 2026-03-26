@@ -1,8 +1,13 @@
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
+const mongoose = require('mongoose');
+const { connectDB, getDBStatus } = require('./config/db');
+const { generalLimiter, authLimiter } = require('./middleware/rateLimiter');
+const requestLogger = require('./middleware/requestLogger');
 
 // Load environment variables
 dotenv.config();
@@ -13,11 +18,25 @@ const app = express();
 // Connect to MongoDB
 connectDB();
 
-// Middleware
-// Enable response compression (Gzip) for better performance
+// ─── Security Middleware ────────────────────────────────────────────────────
+// Helmet sets secure HTTP headers (XSS, clickjacking, CSP, etc.)
+app.use(helmet());
+
+// Sanitize request data against NoSQL injection
+app.use(mongoSanitize());
+
+// ─── Performance Middleware ─────────────────────────────────────────────────
+// Enable response compression (Gzip)
 app.use(compression());
 
-// CORS Configuration
+// ─── Request Logging ────────────────────────────────────────────────────────
+app.use(requestLogger);
+
+// ─── Rate Limiting ──────────────────────────────────────────────────────────
+// Apply general rate limiter to all routes
+app.use(generalLimiter);
+
+// ─── CORS Configuration ────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -36,28 +55,63 @@ app.use(cors({
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
 
-    // Check if the origin is in the explicit allowed list
     if (allowedOrigins.indexOf(origin) !== -1) {
       return callback(null, true);
     }
 
-    // Allow any localhost origin (for dynamic Vite ports: 5173, 5174, 5175, etc.)
+    // Allow any localhost origin (for dynamic Vite ports)
     if (origin.startsWith('http://localhost:')) {
       return callback(null, true);
     }
 
     console.log('❌ CORS Blocked Origin:', origin);
-    console.log('✅ Allowed Origins:', allowedOrigins);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));
 
+// ─── Body Parsing ───────────────────────────────────────────────────────────
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Routes
-app.use('/api/auth', require('./routes/authRoutes'));
+// ─── Request Timeout ────────────────────────────────────────────────────────
+// Abort requests that take longer than 30 seconds
+app.use((req, res, next) => {
+  req.setTimeout(30000, () => {
+    if (!res.headersSent) {
+      res.status(408).json({ message: 'Request timeout' });
+    }
+  });
+  next();
+});
+
+// ─── Health Check ───────────────────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  const dbStatus = getDBStatus();
+  const uptime = process.uptime();
+  const memoryUsage = process.memoryUsage();
+
+  const healthCheck = {
+    status: dbStatus.isConnected ? 'healthy' : 'degraded',
+    timestamp: new Date().toISOString(),
+    uptime: `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`,
+    database: dbStatus,
+    memory: {
+      rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+      heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+      heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`,
+    },
+    environment: process.env.NODE_ENV || 'development',
+  };
+
+  const statusCode = dbStatus.isConnected ? 200 : 503;
+  res.status(statusCode).json(healthCheck);
+});
+
+// ─── Auth Routes (with strict rate limiting) ────────────────────────────────
+app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
+
+// ─── API Routes ─────────────────────────────────────────────────────────────
 app.use('/api/company', require('./routes/companyRoutes'));
 app.use('/api/courses', require('./routes/courseRoutes'));
 app.use('/api/internships', require('./routes/internshipRoutes'));
@@ -78,23 +132,88 @@ app.use('/api/locations', require('./routes/locationRoutes'));
 
 // Welcome route
 app.get('/', (req, res) => {
-  res.json({ message: 'WEintegrity API Server' });
+  res.json({ message: 'WEintegrity API Server', status: 'running' });
 });
 
-// Error handling middleware
+// ─── 404 Handler ────────────────────────────────────────────────────────────
+app.use((req, res) => {
+  res.status(404).json({ message: `Route ${req.originalUrl} not found` });
+});
+
+// ─── Global Error Handler ───────────────────────────────────────────────────
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  // Write to log file for debugging
-  const fs = require('fs');
-  const path = require('path');
-  fs.appendFileSync(path.join(__dirname, 'server_error.log'), `${new Date().toISOString()} - ${err.stack}\n\n`);
+  // Log the full error server-side (stdout, not file)
+  console.error(`❌ [${new Date().toISOString()}] ${req.method} ${req.originalUrl}:`, err.message);
+  if (process.env.NODE_ENV !== 'production') {
+    console.error(err.stack);
+  }
 
-  res.status(500).json({ message: 'Something went wrong!', error: err.message });
+  // Determine status code
+  const statusCode = err.statusCode || err.status || 500;
+
+  // In production, don't leak error details to the client
+  const response = {
+    message: process.env.NODE_ENV === 'production' && statusCode === 500
+      ? 'Something went wrong!'
+      : err.message || 'Something went wrong!',
+  };
+
+  // Include stack trace in development only
+  if (process.env.NODE_ENV !== 'production') {
+    response.stack = err.stack;
+  }
+
+  res.status(statusCode).json(response);
 });
 
-// Start server
+// ─── Start Server ───────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`🛡️  Security: helmet, rate-limiting, mongo-sanitize active`);
   console.log(`📧 Email configured: ${process.env.EMAIL_USER ? '✅ Yes' : '❌ No'}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// ─── Graceful Shutdown ──────────────────────────────────────────────────────
+const gracefulShutdown = (signal) => {
+  console.log(`\n📡 ${signal} received. Starting graceful shutdown...`);
+
+  // Stop accepting new connections
+  server.close(async () => {
+    console.log('🔌 HTTP server closed');
+
+    try {
+      // Close MongoDB connection
+      await mongoose.connection.close();
+      console.log('🗄️  MongoDB connection closed');
+    } catch (err) {
+      console.error('❌ Error closing MongoDB:', err.message);
+    }
+
+    console.log('✅ Graceful shutdown complete');
+    process.exit(0);
+  });
+
+  // Force shutdown after 10 seconds if graceful shutdown hangs
+  setTimeout(() => {
+    console.error('❌ Forced shutdown after 10s timeout');
+    process.exit(1);
+  }, 10000);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// ─── Unhandled Error Safety Nets ────────────────────────────────────────────
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  // Don't crash — log and continue
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('❌ Uncaught Exception:', err.message);
+  console.error(err.stack);
+  // Gracefully shut down on uncaught exceptions
+  gracefulShutdown('uncaughtException');
 });

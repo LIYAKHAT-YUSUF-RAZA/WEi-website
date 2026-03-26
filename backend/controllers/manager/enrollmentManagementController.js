@@ -1,180 +1,175 @@
 const CourseEnrollment = require('../../models/CourseEnrollment');
 const { sendEnrollmentDecisionToCandidate } = require('../../utils/emailService');
+const asyncHandler = require('../../middleware/asyncHandler');
 
 // Get all enrollment requests
-exports.getAllEnrollments = async (req, res) => {
-  try {
-    const { status } = req.query;
+exports.getAllEnrollments = asyncHandler(async (req, res) => {
+  const { status } = req.query;
 
-    const filter = {};
-    if (status && ['pending', 'accepted', 'rejected'].includes(status)) {
-      filter.status = status;
-    }
-    // If no status filter, show ALL enrollments (not just pending)
-
-    const enrollments = await CourseEnrollment.find(filter)
-      .populate('candidate', 'name email phone')
-      .populate('course', 'title description category level duration price originalPrice')
-      .populate('respondedBy', 'name email')
-      .sort('-appliedAt')
-      .lean();
-
-    res.json(enrollments);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching enrollments', error: error.message });
+  const filter = {};
+  if (status && ['pending', 'accepted', 'rejected'].includes(status)) {
+    filter.status = status;
   }
-};
+
+  const enrollments = await CourseEnrollment.find(filter)
+    .populate('candidate', 'name email phone')
+    .populate('course', 'title description category level duration price originalPrice')
+    .populate('respondedBy', 'name email')
+    .sort('-appliedAt')
+    .lean();
+
+  res.json(enrollments);
+});
 
 // Accept enrollment
-exports.acceptEnrollment = async (req, res) => {
-  try {
-    const { enrollmentId } = req.params;
-    const { message } = req.body;
+exports.acceptEnrollment = asyncHandler(async (req, res) => {
+  const { enrollmentId } = req.params;
+  const { message } = req.body;
 
-    const enrollment = await CourseEnrollment.findById(enrollmentId)
-      .populate('candidate', 'name email')
-      .populate('course', 'title');
+  const enrollment = await CourseEnrollment.findById(enrollmentId)
+    .populate('candidate', 'name email')
+    .populate('course', 'title');
 
-    if (!enrollment) {
-      return res.status(404).json({ message: 'Enrollment not found' });
-    }
-
-    if (enrollment.status !== 'pending') {
-      return res.status(400).json({ message: 'Enrollment has already been processed' });
-    }
-
-    // Check if payment has been made
-    if (!enrollment.paymentScreenshot || enrollment.paymentStatus !== 'completed') {
-      return res.status(400).json({ message: 'Cannot accept enrollment without payment confirmation' });
-    }
-
-    enrollment.status = 'accepted'; // Set to accepted after reviewing payment
-    enrollment.courseStartDate = new Date(); // Course starts when manager approves
-    enrollment.message = message || '';
-    enrollment.respondedAt = new Date();
-    enrollment.respondedBy = req.user._id;
-
-    await enrollment.save();
-
-    // Send email to candidate confirming course access
-    await sendEnrollmentDecisionToCandidate(
-      enrollment.candidate.email,
-      enrollment.candidate.name,
-      enrollment.course.title,
-      'accepted',
-      message
-    );
-
-    res.json({
-      message: 'Enrollment accepted successfully',
-      enrollment
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error accepting enrollment', error: error.message });
+  if (!enrollment) {
+    return res.status(404).json({ message: 'Enrollment not found' });
   }
-};
+
+  if (enrollment.status !== 'pending') {
+    return res.status(400).json({ message: 'Enrollment has already been processed' });
+  }
+
+  if (!enrollment.paymentScreenshot || enrollment.paymentStatus !== 'completed') {
+    return res.status(400).json({ message: 'Cannot accept enrollment without payment confirmation' });
+  }
+
+  enrollment.status = 'accepted';
+  enrollment.courseStartDate = new Date();
+  enrollment.message = message || '';
+  enrollment.respondedAt = new Date();
+  enrollment.respondedBy = req.user._id;
+
+  await enrollment.save();
+
+  // Send email asynchronously
+  setImmediate(async () => {
+    try {
+      await sendEnrollmentDecisionToCandidate(
+        enrollment.candidate.email,
+        enrollment.candidate.name,
+        enrollment.course.title,
+        'accepted',
+        message
+      );
+    } catch (emailError) {
+      console.error('Error sending enrollment acceptance email:', emailError.message);
+    }
+  });
+
+  res.json({
+    message: 'Enrollment accepted successfully',
+    enrollment
+  });
+});
 
 // Reject enrollment
-exports.rejectEnrollment = async (req, res) => {
-  try {
-    const { enrollmentId } = req.params;
-    const { message } = req.body;
+exports.rejectEnrollment = asyncHandler(async (req, res) => {
+  const { enrollmentId } = req.params;
+  const { message } = req.body;
 
-    const enrollment = await CourseEnrollment.findById(enrollmentId)
-      .populate('candidate', 'name email')
-      .populate('course', 'title');
+  const enrollment = await CourseEnrollment.findById(enrollmentId)
+    .populate('candidate', 'name email')
+    .populate('course', 'title');
 
-    if (!enrollment) {
-      return res.status(404).json({ message: 'Enrollment not found' });
-    }
-
-    if (enrollment.status !== 'pending') {
-      return res.status(400).json({ message: 'Enrollment has already been processed' });
-    }
-
-    enrollment.status = 'rejected';
-    enrollment.message = message || '';
-    enrollment.respondedAt = new Date();
-    enrollment.respondedBy = req.user._id;
-
-    await enrollment.save();
-
-    // Send email to candidate
-    await sendEnrollmentDecisionToCandidate(
-      enrollment.candidate.email,
-      enrollment.candidate.name,
-      enrollment.course.title,
-      'rejected',
-      message
-    );
-
-    res.json({
-      message: 'Enrollment rejected',
-      enrollment
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error rejecting enrollment', error: error.message });
+  if (!enrollment) {
+    return res.status(404).json({ message: 'Enrollment not found' });
   }
-};
+
+  if (enrollment.status !== 'pending') {
+    return res.status(400).json({ message: 'Enrollment has already been processed' });
+  }
+
+  enrollment.status = 'rejected';
+  enrollment.message = message || '';
+  enrollment.respondedAt = new Date();
+  enrollment.respondedBy = req.user._id;
+
+  await enrollment.save();
+
+  // Send email asynchronously
+  setImmediate(async () => {
+    try {
+      await sendEnrollmentDecisionToCandidate(
+        enrollment.candidate.email,
+        enrollment.candidate.name,
+        enrollment.course.title,
+        'rejected',
+        message
+      );
+    } catch (emailError) {
+      console.error('Error sending enrollment rejection email:', emailError.message);
+    }
+  });
+
+  res.json({
+    message: 'Enrollment rejected',
+    enrollment
+  });
+});
 
 // Unenroll candidate (manager action)
-exports.unenrollCandidate = async (req, res) => {
-  try {
-    const { enrollmentId } = req.params;
-    const { message } = req.body;
+exports.unenrollCandidate = asyncHandler(async (req, res) => {
+  const { enrollmentId } = req.params;
+  const { message } = req.body;
 
-    const enrollment = await CourseEnrollment.findById(enrollmentId)
-      .populate('candidate', 'name email')
-      .populate('course', 'title');
+  const enrollment = await CourseEnrollment.findById(enrollmentId)
+    .populate('candidate', 'name email')
+    .populate('course', 'title');
 
-    if (!enrollment) {
-      return res.status(404).json({ message: 'Enrollment not found' });
-    }
-
-    if (enrollment.status !== 'accepted') {
-      return res.status(400).json({ message: 'Can only unenroll accepted enrollments' });
-    }
-
-    // Delete the enrollment record
-    await CourseEnrollment.findByIdAndDelete(enrollmentId);
-
-    // Send email notification to candidate
-    await sendEnrollmentDecisionToCandidate(
-      enrollment.candidate.email,
-      enrollment.candidate.name,
-      enrollment.course.title,
-      'unenrolled',
-      message || 'You have been unenrolled from this course by the manager.'
-    );
-
-    res.json({
-      message: 'Candidate unenrolled successfully',
-      enrollment
-    });
-  } catch (error) {
-    res.status(500).json({ message: 'Error unenrolling candidate', error: error.message });
+  if (!enrollment) {
+    return res.status(404).json({ message: 'Enrollment not found' });
   }
-};
+
+  if (enrollment.status !== 'accepted') {
+    return res.status(400).json({ message: 'Can only unenroll accepted enrollments' });
+  }
+
+  await CourseEnrollment.findByIdAndDelete(enrollmentId);
+
+  // Send email asynchronously
+  setImmediate(async () => {
+    try {
+      await sendEnrollmentDecisionToCandidate(
+        enrollment.candidate.email,
+        enrollment.candidate.name,
+        enrollment.course.title,
+        'unenrolled',
+        message || 'You have been unenrolled from this course by the manager.'
+      );
+    } catch (emailError) {
+      console.error('Error sending unenrollment email:', emailError.message);
+    }
+  });
+
+  res.json({
+    message: 'Candidate unenrolled successfully',
+    enrollment
+  });
+});
 
 // Get enrollment statistics
-exports.getEnrollmentStats = async (req, res) => {
-  try {
-    // Single aggregation instead of 3 separate countDocuments
-    const stats = await CourseEnrollment.aggregate([
-      {
-        $group: {
-          _id: null,
-          total: { $sum: 1 },
-          pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
-          accepted: { $sum: { $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0] } },
-          rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
-        }
+exports.getEnrollmentStats = asyncHandler(async (req, res) => {
+  const stats = await CourseEnrollment.aggregate([
+    {
+      $group: {
+        _id: null,
+        total: { $sum: 1 },
+        pending: { $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] } },
+        accepted: { $sum: { $cond: [{ $eq: ['$status', 'accepted'] }, 1, 0] } },
+        rejected: { $sum: { $cond: [{ $eq: ['$status', 'rejected'] }, 1, 0] } }
       }
-    ]);
+    }
+  ]);
 
-    const result = stats[0] || { total: 0, pending: 0, accepted: 0, rejected: 0 };
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching enrollment statistics', error: error.message });
-  }
-};
+  const result = stats[0] || { total: 0, pending: 0, accepted: 0, rejected: 0 };
+  res.json(result);
+});
