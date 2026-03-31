@@ -15,6 +15,7 @@ const ManageServices = () => {
     // District locations lookup states
     const [districtLocations, setDistrictLocations] = useState([]);
     const [locationsLoading, setLocationsLoading] = useState(false);
+    const [townNotFound, setTownNotFound] = useState(false);
 
     const [formData, setFormData] = useState({
         title: '',
@@ -114,9 +115,11 @@ const ManageServices = () => {
         if (name === 'country') {
             setFormData(prev => ({ ...prev, country: value, state: '', district: '', city: '', location: '', pincode: '' }));
             setDistrictLocations([]);
+            setTownNotFound(false);
         } else if (name === 'state') {
             setFormData(prev => ({ ...prev, state: value, district: '', city: '', location: '', pincode: '' }));
             setDistrictLocations([]);
+            setTownNotFound(false);
         } else {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
@@ -125,6 +128,7 @@ const ManageServices = () => {
     const handleDistrictChange = async (e) => {
         const district = e.target.value;
         setFormData(prev => ({ ...prev, district, location: district, city: '', pincode: '' }));
+        setTownNotFound(false);
 
         if (district) {
             setLocationsLoading(true);
@@ -150,8 +154,15 @@ const ManageServices = () => {
         const selectedVal = e.target.value;
         if (!selectedVal) {
             setFormData(prev => ({ ...prev, city: '', pincode: '' }));
+            setTownNotFound(false);
             return;
         }
+        if (selectedVal === '__OTHER__') {
+            setTownNotFound(true);
+            setFormData(prev => ({ ...prev, city: '', pincode: '' }));
+            return;
+        }
+        setTownNotFound(false);
         const [name, pin] = selectedVal.split('|');
         setFormData(prev => ({ ...prev, city: name, pincode: pin }));
     };
@@ -484,7 +495,7 @@ const ManageServices = () => {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Village / Town</label>
                                         <div className="relative">
                                             <select
-                                                value={formData.city && formData.pincode ? `${formData.city}|${formData.pincode}` : ''}
+                                                value={townNotFound ? '__OTHER__' : (formData.city && formData.pincode ? `${formData.city}|${formData.pincode}` : '')}
                                                 onChange={handleVillageChange}
                                                 disabled={!formData.district || locationsLoading}
                                                 className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 disabled:opacity-50 appearance-none"
@@ -495,11 +506,22 @@ const ManageServices = () => {
                                                         {loc.name} - {loc.pincode}
                                                     </option>
                                                 ))}
+                                                <option value="__OTHER__">Other (Enter city name)</option>
                                             </select>
                                             {locationsLoading && (
                                                 <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                                     <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                                                 </div>
+                                            )}
+                                            {townNotFound && (
+                                                <input
+                                                    type="text"
+                                                    placeholder="Enter your city / town name"
+                                                    value={formData.city}
+                                                    onChange={(e) => setFormData(prev => ({ ...prev, city: e.target.value, pincode: '' }))}
+                                                    autoFocus
+                                                    className="w-full mt-2 px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500"
+                                                />
                                             )}
                                         </div>
                                     </div>

@@ -1,22 +1,44 @@
 const mongoose = require('mongoose');
 
-let isConnected = false;
-
 const connectDB = async () => {
+  const mongoOptions = {
+    // Connection pool — up to 10 simultaneous DB connections
+    maxPoolSize: 10,
+    minPoolSize: 2,
+
+    // How long to wait when picking a connection from the pool
+    waitQueueTimeoutMS: 5000,
+
+    // Server selection: give up after 5s if MongoDB is unreachable
+    serverSelectionTimeoutMS: 5000,
+
+    // Kill sockets that haven't responded within 45s
+    socketTimeoutMS: 45000,
+
+    // Send a ping every 10s to detect broken connections early
+    heartbeatFrequencyMS: 10000,
+  };
+
   try {
-    const conn = await mongoose.connect(process.env.MONGODB_URI, {
-      maxPoolSize: 10,             // Max connections in the pool
-      serverSelectionTimeoutMS: 5000, // Timeout for server selection
-      socketTimeoutMS: 45000,      // Close sockets after 45s of inactivity
-      heartbeatFrequencyMS: 10000, // Check server health every 10s
+    const conn = await mongoose.connect(process.env.MONGODB_URI, mongoOptions);
+    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+
+    mongoose.connection.on('disconnected', () => {
+      console.warn('⚠️  MongoDB disconnected. Mongoose will auto-reconnect.');
     });
 
-    isConnected = true;
-    console.log(`✅ MongoDB Connected: ${conn.connection.host}`);
+    mongoose.connection.on('reconnected', () => {
+      console.log('✅ MongoDB reconnected.');
+    });
+
+    mongoose.connection.on('error', (err) => {
+      console.error('❌ MongoDB connection error:', err.message);
+    });
 
     // Seed the database if empty
     const seedDatabase = require('../utils/seeder');
     await seedDatabase();
+
   } catch (error) {
     console.log('⚠️  Standard MongoDB Connection Failed:', error.message);
     console.log('🔄 Attempting to start In-Memory MongoDB...');
@@ -28,58 +50,20 @@ const connectDB = async () => {
 
       console.log('📦 In-Memory MongoDB started at:', uri);
 
-      const conn = await mongoose.connect(uri, {
-        maxPoolSize: 10,
-        serverSelectionTimeoutMS: 5000,
-      });
-
-      isConnected = true;
+      const conn = await mongoose.connect(uri, mongoOptions);
       console.log(`✅ In-Memory MongoDB Connected: ${conn.connection.host}`);
 
       process.env.MONGODB_URI = uri;
 
       const seedDatabase = require('../utils/seeder');
       await seedDatabase();
+
     } catch (memoryError) {
       console.error('❌ In-Memory MongoDB Error:', memoryError.message);
       console.error('❌ Original MongoDB Connection Error:', error.message);
       process.exit(1);
     }
   }
-
-  // Connection event listeners for monitoring
-  mongoose.connection.on('connected', () => {
-    isConnected = true;
-    console.log('📡 Mongoose connected to DB');
-  });
-
-  mongoose.connection.on('error', (err) => {
-    isConnected = false;
-    console.error('❌ Mongoose connection error:', err.message);
-  });
-
-  mongoose.connection.on('disconnected', () => {
-    isConnected = false;
-    console.warn('⚠️  Mongoose disconnected from DB');
-  });
 };
 
-/**
- * Get current DB connection status
- * Used by health check endpoint
- */
-const getDBStatus = () => {
-  const states = {
-    0: 'disconnected',
-    1: 'connected',
-    2: 'connecting',
-    3: 'disconnecting',
-  };
-  return {
-    status: states[mongoose.connection.readyState] || 'unknown',
-    isConnected,
-    readyState: mongoose.connection.readyState,
-  };
-};
-
-module.exports = { connectDB, getDBStatus };
+module.exports = connectDB;

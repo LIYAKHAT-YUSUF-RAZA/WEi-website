@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import {
@@ -117,6 +117,12 @@ const CandidateDashboard = () => {
     }
   };
 
+  // Must be above any early returns — Rules of Hooks
+  const stats = useMemo(() => ({
+    enrolledCount: Object.values(enrollments).filter(e => e.status === 'accepted').length,
+    applicationCount: Object.keys(applicationStatuses).length
+  }), [enrollments, applicationStatuses]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -124,14 +130,6 @@ const CandidateDashboard = () => {
       </div>
     );
   }
-
-  // Calculate stats using useMemo
-  const stats = useMemo(() => {
-    return {
-      enrolledCount: Object.values(enrollments).filter(e => e.status === 'accepted').length,
-      applicationCount: Object.keys(applicationStatuses).length
-    };
-  }, [enrollments, applicationStatuses]);
   return (
     <div className="min-h-screen bg-gray-50 font-body pb-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 pt-24">

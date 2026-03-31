@@ -58,6 +58,7 @@ const Home = () => {
   // District locations lookup states
   const [districtLocations, setDistrictLocations] = useState([]);
   const [locationsLoading, setLocationsLoading] = useState(false);
+  const [townNotFound, setTownNotFound] = useState(false);
 
   const serviceTypes = [
     'Electrician', 'AC Mechanic', 'Bike Mechanic', 'Painter', 'Carpenter',
@@ -76,6 +77,7 @@ const Home = () => {
     setSelectedCity('');
     setSelectedPincode('');
     setDistrictLocations([]);
+    setTownNotFound(false);
   };
 
   const handleStateChange = (e) => {
@@ -84,6 +86,7 @@ const Home = () => {
     setSelectedCity('');
     setSelectedPincode('');
     setDistrictLocations([]);
+    setTownNotFound(false);
   };
 
   const handleDistrictChange = async (e) => {
@@ -91,6 +94,7 @@ const Home = () => {
     setSelectedDistrict(district);
     setSelectedCity('');
     setSelectedPincode('');
+    setTownNotFound(false);
 
     if (district) {
       setLocationsLoading(true);
@@ -117,8 +121,16 @@ const Home = () => {
     if (!selectedVal) {
       setSelectedCity('');
       setSelectedPincode('');
+      setTownNotFound(false);
       return;
     }
+    if (selectedVal === '__OTHER__') {
+      setTownNotFound(true);
+      setSelectedCity('');
+      setSelectedPincode('');
+      return;
+    }
+    setTownNotFound(false);
     const [name, pin] = selectedVal.split('|');
     setSelectedCity(name);
     setSelectedPincode(pin);
@@ -552,7 +564,7 @@ const Home = () => {
                 {/* Village / Town Selection */}
                 <div className="relative">
                   <select
-                    value={selectedCity && selectedPincode ? `${selectedCity}|${selectedPincode}` : ''}
+                    value={townNotFound ? '__OTHER__' : (selectedCity && selectedPincode ? `${selectedCity}|${selectedPincode}` : '')}
                     onChange={handleVillageChange}
                     disabled={!selectedDistrict || locationsLoading}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium disabled:opacity-50 appearance-none"
@@ -563,11 +575,25 @@ const Home = () => {
                         {loc.name} - {loc.pincode}
                       </option>
                     ))}
+                    <option value="__OTHER__">Other (Enter city name)</option>
                   </select>
                   {locationsLoading && (
                     <div className="absolute right-8 top-1/2 -translate-y-1/2 flex items-center">
                       <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
                     </div>
+                  )}
+                  {townNotFound && (
+                    <input
+                      type="text"
+                      placeholder="Enter your city / town name"
+                      value={selectedCity}
+                      onChange={(e) => {
+                        setSelectedCity(e.target.value);
+                        setSelectedPincode('');
+                      }}
+                      autoFocus
+                      className="w-full mt-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                    />
                   )}
                 </div>
 
@@ -602,145 +628,156 @@ const Home = () => {
             </div>
           </div>
 
-          {/* Scrolling Container */}
-          <div className="relative group/slider">
-            <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-              {(() => {
-                const filteredServices = services; // services are now filtered by the backend
+          {/* Services: shown only after district + city are selected */}
+          {selectedDistrict && selectedCity ? (
+            <div className="relative group/slider">
+              <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+                {(() => {
+                  const filteredServices = services; // services are now filtered by the backend
 
-                if (filteredServices.length === 0) {
-                  return (
-                    <div className="w-full text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm mx-4 col-span-full">
-                      <div className="mx-auto w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
-                        <Search className="w-8 h-8 text-gray-400" />
+                  if (filteredServices.length === 0) {
+                    return (
+                      <div className="w-full text-center py-12 bg-white rounded-2xl border border-gray-100 shadow-sm mx-4 col-span-full">
+                        <div className="mx-auto w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+                          <Search className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">No Services Found</h3>
+                        <p className="text-gray-500">We couldn't find any services matching your criteria.</p>
+                        <button
+                          onClick={() => {
+                            setServiceSearch('');
+                            setSelectedState('');
+                            setSelectedDistrict('');
+                            setSelectedCity('');
+                            setSelectedPincode('');
+                            setSelectedServiceType('');
+                            setSelectedCountry('India');
+                            setSelectedServiceRole(null);
+                            setDistrictLocations([]);
+                            setTownNotFound(false);
+                          }}
+                          className="mt-4 text-blue-600 font-bold hover:underline"
+                        >
+                          Clear All Filters
+                        </button>
                       </div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">No Services Found</h3>
-                      <p className="text-gray-500">We couldn't find any services matching your criteria.</p>
+                    );
+                  }
+
+                  // Group services by role for Category View
+                  const groupedServices = filteredServices.reduce((acc, service) => {
+                    if (!acc[service.role]) {
+                      acc[service.role] = [];
+                    }
+                    acc[service.role].push(service);
+                    return acc;
+                  }, {});
+
+                  // If no specific role selected, show categories
+                  if (!selectedServiceRole) {
+                    return Object.entries(groupedServices).map(([role, services]) => (
+                      <div key={role} className="min-w-[280px] md:min-w-[320px] snap-center">
+                        <div
+                          onClick={() => setSelectedServiceRole(role)}
+                          className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group h-full cursor-pointer"
+                        >
+                          <div className="relative h-48 overflow-hidden">
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+                            <img
+                              src={services[0].image}
+                              alt={role}
+                              className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                            />
+                            <div className="absolute bottom-4 left-4 z-20 text-white">
+                              <h3 className="font-bold text-xl">{role}</h3>
+                              <div className="flex items-center gap-1 text-sm text-gray-200">
+                                <Users className="w-4 h-4" /> {services.length} Experts Available
+                              </div>
+                            </div>
+                          </div>
+                          <div className="p-6 flex items-center justify-between text-blue-600 font-bold">
+                            <span>View Providers</span>
+                            <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  }
+
+                  // If role selected, show providers for that role
+                  return (
+                    <div className="w-full px-4">
                       <button
-                        onClick={() => {
-                          setServiceSearch('');
-                          setSelectedState('');
-                          setSelectedDistrict('');
-                          setSelectedCity('');
-                          setSelectedPincode('');
-                          setSelectedServiceType('');
-                          setSelectedCountry('India');
-                          setSelectedServiceRole(null);
-                          setDistrictLocations([]);
-                        }}
-                        className="mt-4 text-blue-600 font-bold hover:underline"
+                        onClick={() => setSelectedServiceRole(null)}
+                        className="mb-6 flex items-center gap-2 text-gray-600 hover:text-blue-600 font-bold transition-colors"
                       >
-                        Clear All Filters
+                        <ChevronLeft className="w-5 h-5" /> Back to Categories
                       </button>
+
+                      <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+                        {filteredServices
+                          .filter(service => service.role === selectedServiceRole)
+                          .map((service) => (
+                            <div key={service._id} className="min-w-[280px] md:min-w-[320px] snap-center">
+                              <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group h-full">
+                                <div className="relative h-48 overflow-hidden">
+                                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
+                                  <img
+                                    src={service.image}
+                                    alt={service.role}
+                                    className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+                                  />
+                                  <div className="absolute bottom-4 left-4 z-20 text-white">
+                                    <h3 className="font-bold text-lg">{service.role}</h3>
+                                    <div className="flex items-center gap-1 text-sm text-gray-200">
+                                      <MapPin className="w-3 h-3" /> {service.location}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="p-6">
+                                  <div className="flex items-center justify-between mb-4">
+                                    <div>
+                                      <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Expert</p>
+                                      <p className="font-bold text-gray-900">{service.name}</p>
+                                    </div>
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold">
+                                      {service.name[0]}
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                                    <div className="flex items-center gap-1.5">
+                                      <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                                      <span className="font-bold text-gray-900">{service.rating}</span>
+                                      <span className="text-xs text-gray-500">({service.reviews})</span>
+                                    </div>
+                                    <Link
+                                      to={`/services/${service._id}`}
+                                      className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
+                                    >
+                                      View Details
+                                    </Link>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
                     </div>
                   );
-                }
-
-                // Group services by role for Category View
-                const groupedServices = filteredServices.reduce((acc, service) => {
-                  if (!acc[service.role]) {
-                    acc[service.role] = [];
-                  }
-                  acc[service.role].push(service);
-                  return acc;
-                }, {});
-
-                // If no specific role selected, show categories
-                if (!selectedServiceRole) {
-                  return Object.entries(groupedServices).map(([role, services]) => (
-                    <div key={role} className="min-w-[280px] md:min-w-[320px] snap-center">
-                      <div
-                        onClick={() => setSelectedServiceRole(role)}
-                        className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group h-full cursor-pointer"
-                      >
-                        <div className="relative h-48 overflow-hidden">
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                          <img
-                            src={services[0].image}
-                            alt={role}
-                            className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                          />
-                          <div className="absolute bottom-4 left-4 z-20 text-white">
-                            <h3 className="font-bold text-xl">{role}</h3>
-                            <div className="flex items-center gap-1 text-sm text-gray-200">
-                              <Users className="w-4 h-4" /> {services.length} Experts Available
-                            </div>
-                          </div>
-                        </div>
-                        <div className="p-6 flex items-center justify-between text-blue-600 font-bold">
-                          <span>View Providers</span>
-                          <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                        </div>
-                      </div>
-                    </div>
-                  ));
-                }
-
-                // If role selected, show providers for that role
-                return (
-                  <div className="w-full px-4">
-                    <button
-                      onClick={() => setSelectedServiceRole(null)}
-                      className="mb-6 flex items-center gap-2 text-gray-600 hover:text-blue-600 font-bold transition-colors"
-                    >
-                      <ChevronLeft className="w-5 h-5" /> Back to Categories
-                    </button>
-
-                    <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
-                      {filteredServices
-                        .filter(service => service.role === selectedServiceRole)
-                        .map((service) => (
-                          <div key={service._id} className="min-w-[280px] md:min-w-[320px] snap-center">
-                            <div className="bg-white rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-300 border border-gray-100 group h-full">
-                              <div className="relative h-48 overflow-hidden">
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10" />
-                                <img
-                                  src={service.image}
-                                  alt={service.role}
-                                  className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
-                                />
-                                <div className="absolute bottom-4 left-4 z-20 text-white">
-                                  <h3 className="font-bold text-lg">{service.role}</h3>
-                                  <div className="flex items-center gap-1 text-sm text-gray-200">
-                                    <MapPin className="w-3 h-3" /> {service.location}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="p-6">
-                                <div className="flex items-center justify-between mb-4">
-                                  <div>
-                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Expert</p>
-                                    <p className="font-bold text-gray-900">{service.name}</p>
-                                  </div>
-                                  <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 font-bold">
-                                    {service.name[0]}
-                                  </div>
-                                </div>
-
-                                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                                  <div className="flex items-center gap-1.5">
-                                    <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" />
-                                    <span className="font-bold text-gray-900">{service.rating}</span>
-                                    <span className="text-xs text-gray-500">({service.reviews})</span>
-                                  </div>
-                                  <Link
-                                    to={`/services/${service._id}`}
-                                    className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors"
-                                  >
-                                    View Details
-                                  </Link>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                );
-              })()}
+                })()}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="w-full text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+              <div className="mx-auto w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
+                <MapPin className="w-8 h-8 text-blue-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Select Your Location</h3>
+              <p className="text-gray-500 max-w-md mx-auto">Please select a district and town / city above to view available services in your area.</p>
+            </div>
+          )}
         </div>
       </section>
 
