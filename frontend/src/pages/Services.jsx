@@ -11,12 +11,12 @@ const Services = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
 
-    // Cascading location state (persisted via sessionStorage)
+    // Cascading location state (persisted via sessionStorage, defaults to Bhimavaram)
     const [selectedCountry, setSelectedCountry] = useState(() => sessionStorage.getItem('wei_loc_country') || 'India');
-    const [selectedState, setSelectedState] = useState(() => sessionStorage.getItem('wei_loc_state') || '');
-    const [selectedDistrict, setSelectedDistrict] = useState(() => sessionStorage.getItem('wei_loc_district') || '');
-    const [selectedCity, setSelectedCity] = useState(() => sessionStorage.getItem('wei_loc_city') || '');
-    const [selectedPincode, setSelectedPincode] = useState(() => sessionStorage.getItem('wei_loc_pincode') || '');
+    const [selectedState, setSelectedState] = useState(() => sessionStorage.getItem('wei_loc_state') || 'Andhra Pradesh');
+    const [selectedDistrict, setSelectedDistrict] = useState(() => sessionStorage.getItem('wei_loc_district') || 'West Godavari');
+    const [selectedCity, setSelectedCity] = useState(() => sessionStorage.getItem('wei_loc_city') || 'Bhimavaram');
+    const [selectedPincode, setSelectedPincode] = useState(() => sessionStorage.getItem('wei_loc_pincode') || '534201');
     const [districtLocations, setDistrictLocations] = useState([]);
     const [locationsLoading, setLocationsLoading] = useState(false);
     const [townNotFound, setTownNotFound] = useState(false);
