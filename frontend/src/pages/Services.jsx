@@ -11,15 +11,31 @@ const Services = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
 
-    // Cascading location state
-    const [selectedCountry, setSelectedCountry] = useState('India');
-    const [selectedState, setSelectedState] = useState('');
-    const [selectedDistrict, setSelectedDistrict] = useState('');
-    const [selectedCity, setSelectedCity] = useState('');
-    const [selectedPincode, setSelectedPincode] = useState('');
+    // Cascading location state (persisted via sessionStorage)
+    const [selectedCountry, setSelectedCountry] = useState(() => sessionStorage.getItem('wei_loc_country') || 'India');
+    const [selectedState, setSelectedState] = useState(() => sessionStorage.getItem('wei_loc_state') || '');
+    const [selectedDistrict, setSelectedDistrict] = useState(() => sessionStorage.getItem('wei_loc_district') || '');
+    const [selectedCity, setSelectedCity] = useState(() => sessionStorage.getItem('wei_loc_city') || '');
+    const [selectedPincode, setSelectedPincode] = useState(() => sessionStorage.getItem('wei_loc_pincode') || '');
     const [districtLocations, setDistrictLocations] = useState([]);
     const [locationsLoading, setLocationsLoading] = useState(false);
     const [townNotFound, setTownNotFound] = useState(false);
+
+    // Sync location selection to sessionStorage (so it persists across page navigations)
+    useEffect(() => {
+        sessionStorage.setItem('wei_loc_country', selectedCountry);
+        sessionStorage.setItem('wei_loc_state', selectedState);
+        sessionStorage.setItem('wei_loc_district', selectedDistrict);
+        sessionStorage.setItem('wei_loc_city', selectedCity);
+        sessionStorage.setItem('wei_loc_pincode', selectedPincode);
+    }, [selectedCountry, selectedState, selectedDistrict, selectedCity, selectedPincode]);
+
+    // Initial load for district locations if district was loaded from cache
+    useEffect(() => {
+        if (selectedDistrict) {
+            handleDistrictChange({ target: { value: selectedDistrict } });
+        }
+    }, []); // Run only once on mount to populate the town dropdown
 
     const navigate = useNavigate();
 
