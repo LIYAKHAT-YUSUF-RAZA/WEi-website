@@ -50,7 +50,7 @@ const createManagerRequest = async (req, res) => {
             phone
           });
         } catch (emailError) {
-          // Don't fail the request if email fails
+          console.error(`❌ Failed to send manager request notification email to ${manager.email}:`, emailError.message);
         }
       }
     }
